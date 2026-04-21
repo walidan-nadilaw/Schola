@@ -1,7 +1,13 @@
 from fastapi import FastAPI
-from database import Base, engine
-import models
 
-Base.metadata.create_all(bind=engine)
+from backend.routers.auth import router as auth_router
 
-app = FastAPI(title="Schola API")
+app = FastAPI()
+
+app.include_router(auth_router)
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+

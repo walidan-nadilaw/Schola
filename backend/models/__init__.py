@@ -1,1 +1,1 @@
-from models.user import User, Mahasiswa, OperatorLembaga, DosenPejabat
+from .user import User, Mahasiswa, OperatorLembaga, DosenPejabat

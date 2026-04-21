@@ -1,15 +1,19 @@
 from sqlalchemy import create_engine, text
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base
 
 from dotenv import load_dotenv
 import os
 
-try:
-    load_dotenv()
-    DATABASE_URL = str(os.getenv("DATABASE_URL"))
-    engine = create_engine(DATABASE_URL)
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set.")
+
+engine = create_engine(DATABASE_URL)
+
+try:
     print("SQLAlchemy engine created successfully.")
 
     with engine.connect() as connection:
@@ -20,6 +24,7 @@ try:
 
 except Exception as e:
     print(f"An error occurred: {e}")
+    raise
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
