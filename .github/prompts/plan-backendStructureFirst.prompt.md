@@ -1,0 +1,15 @@
+## Plan: Backend Structure First
+
+Reshape the backend into a real package boundary before adding auth. The goal is to make imports predictable, separate concerns into clear modules, keep small-purpose helpers in the right place, and keep the auth path simple now while leaving room for Google OAuth later.
+
+**Steps**
+1. Normalize the backend package layout so the app can be started consistently from the project root. Fix package-relative imports in `backend/models/__init__.py`, remove any `from models...` style imports, and make sure each module imports the backend package the same way.
+2. Split the backend into explicit layers before adding auth logic: `models`, `schemas`, `security`, `dependencies`, `routers`, and `crud` or `services` if repeated database logic starts to emerge. Keep `main.py` as the app entry point only, not the place where business logic grows.
+3. Add a small, purpose-built helper surface instead of a generic helpers dump. Put auth primitives in a `backend/security/` package, request-scoped helpers in `backend/dependencies.py`, and only add a shared `backend/utils.py` if a function truly does not belong anywhere else.
+4. Add backend security utilities in a new `backend/security/` package for password hashing, password verification, JWT creation, and token decoding. Keep token settings centralized so expiry and signing config can be changed without touching route code. A folder keeps the auth code split cleanly as it grows.
+5. Extend the backend schemas in `backend/schemas/user.py` to clearly separate registration, login, and response payloads. Reuse the current `UserBase`, `LoginRequest`, and `TokenResponse` direction, but add the missing create/response schemas needed by the auth routes and future protected user endpoints.
+6. Add auth routes to a dedicated router module for register, login, and a protected current-user endpoint. Registration should create the correct polymorphic user subtype, store a hashed password, and reject duplicate emails; login should verify credentials and return a JWT access token.
+7. Add a dependency helper for protected endpoints, such as a `get_current_user` dependency built on FastAPI `Depends`, so authorization can be reused across future backend routes without duplicating token parsing logic.
+8. Update database initialization and model import registration so `backend/init_db.py` continues to create all tables reliably after the auth changes. Keep table creation explicit and avoid running it automatically during normal app startup unless you decide that is desirable later.
+9. Add a future OAuth-friendly extension point in the data model, but only if needed now. The preferred backend shape is a separate identity-linking table or nullable identity fields, so a Google account can later attach to an existing user without rewriting the email/password flow.
+10. Add backend-only validation and error handling for common auth failures: invalid email format, duplicate registration, bad credentials, missing/expired token, and disabled future-provider conflicts if external auth is introduced later.
