@@ -19,7 +19,9 @@ class User(Base):
     nama: Mapped[str] = mapped_column(String, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[RoleType] = mapped_column(SAEnum(RoleType), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
 
     __mapper_args__ = {
         "polymorphic_on": role,  # discriminator column
