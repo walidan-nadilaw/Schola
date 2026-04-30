@@ -4,10 +4,12 @@ from typing import Optional
 
 from backend.models.user import RoleType
 
+
 class UserBase(BaseModel):
     email: EmailStr
     nama: str
     role: RoleType
+
 
 class MahasiswaCreate(UserBase):
     password: str
@@ -27,6 +29,7 @@ class RegisterRequest(UserBase):
     nip: Optional[str] = None
     jabatan: Optional[str] = None
 
+
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,9 +42,11 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     user: UserResponse
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
 
 class TokenResponse(BaseModel):
     access_token: str

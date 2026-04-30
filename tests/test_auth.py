@@ -11,7 +11,6 @@ from sqlalchemy.orm import sessionmaker
 from backend.database import Base, get_db
 from backend.main import app
 
-
 TEST_DATABASE_URL = "sqlite://"
 
 engine = create_engine(
