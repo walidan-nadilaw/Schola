@@ -6,18 +6,24 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.models.user import User
-from backend.schemas.user import AuthResponse, LoginRequest, RegisterRequest, UserResponse
+from backend.schemas.user import (
+    AuthResponse,
+    LoginRequest,
+    RegisterRequest,
+    UserResponse,
+)
 from backend.services import (
     authenticate_user as authenticate_user_service,
     create_user_access_token,
     register_user as register_user_service,
 )
 
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
+)
 def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     user = register_user_service(payload, db)
     access_token = create_user_access_token(user)

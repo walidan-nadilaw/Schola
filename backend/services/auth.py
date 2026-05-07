@@ -17,7 +17,11 @@ def build_user(payload: RegisterRequest) -> User:
     }
 
     if payload.role == RoleType.mahasiswa:
-        missing = [field for field in ("nim", "fakultas", "program_studi") if getattr(payload, field) is None]
+        missing = [
+            field
+            for field in ("nim", "fakultas", "program_studi")
+            if getattr(payload, field) is None
+        ]
         if missing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -43,7 +47,11 @@ def build_user(payload: RegisterRequest) -> User:
         )
 
     if payload.role == RoleType.dosen_pejabat:
-        missing = [field for field in ("nip", "jabatan", "unit_kerja") if getattr(payload, field) is None]
+        missing = [
+            field
+            for field in ("nip", "jabatan", "unit_kerja")
+            if getattr(payload, field) is None
+        ]
         if missing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
