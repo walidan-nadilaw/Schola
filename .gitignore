@@ -274,4 +274,22 @@ psd
 thumb
 sketch
 
+# Database lokal
+schola.db
+schola.db-journal
+
+# Frontend Build & Cache
+frontend/dist/
+frontend/node_modules/
+.eslintcache
+
+# Backend Virtual Environment
+backend/venv/
+backend/__pycache__/
+
+# Environment Variables
+.env
+.env.local
+*.env
+
 # End of https://www.toptal.com/developers/gitignore/api/react,python,flask
