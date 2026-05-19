@@ -1,14 +1,37 @@
-import { useState } from 'react';
-import { Plus, Edit, Trash2, Save, X, HelpCircle } from 'lucide-react';
-import { mockFAQs, FAQItem } from '../../utils/guides';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Save, X, HelpCircle, Loader2 } from 'lucide-react';
+import { api } from '../../utils/api';
+
+interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+}
 
 export default function AdminFAQManagement() {
-  const [faqs, setFaqs] = useState(() => mockFAQs);
+  const [faqs, setFaqs] = useState<FAQItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form states
   const [formQuestion, setFormQuestion] = useState('');
   const [formAnswer, setFormAnswer] = useState('');
+
+  const fetchFaqs = async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.get<FAQItem[]>('/faqs');
+      setFaqs(data || []);
+    } catch (err) {
+      console.error("Gagal mengambil FAQ:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFaqs();
+  }, []);
 
   const handleEditStart = (faq: FAQItem) => {
     setEditingId(faq.id);
@@ -26,39 +49,42 @@ export default function AdminFAQManagement() {
     setEditingId(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formQuestion.trim() || !formAnswer.trim()) {
       alert('Pertanyaan dan Jawaban wajib diisi!');
       return;
     }
 
-    if (editingId === 'new') {
-      const newFAQ: FAQItem = {
-        id: `F0${faqs.length + 1}`,
-        question: formQuestion,
-        answer: formAnswer
+    try {
+      const payload = {
+        question: formQuestion.trim(),
+        answer: formAnswer.trim(),
       };
-      mockFAQs.push(newFAQ);
-    } else {
-      const target = mockFAQs.find(f => f.id === editingId);
-      if (target) {
-        target.question = formQuestion;
-        target.answer = formAnswer;
-      }
-    }
 
-    setFaqs([...mockFAQs]);
-    setEditingId(null);
-    alert('FAQ berhasil disimpan!');
+      if (editingId === 'new') {
+        await api.post('/faqs/', payload);
+      } else {
+        await api.put(`/faqs/${editingId}`, payload);
+      }
+
+      await fetchFaqs();
+      setEditingId(null);
+      alert('FAQ berhasil disimpan!');
+    } catch (err) {
+      console.error("Gagal menyimpan FAQ:", err);
+      alert('Gagal menyimpan FAQ.');
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus FAQ ini?')) {
-      const idx = mockFAQs.findIndex(f => f.id === id);
-      if (idx >= 0) {
-        mockFAQs.splice(idx, 1);
-        setFaqs([...mockFAQs]);
+      try {
+        await api.delete(`/faqs/${id}`);
+        await fetchFaqs();
         alert('FAQ berhasil dihapus!');
+      } catch (err) {
+        console.error("Gagal menghapus FAQ:", err);
+        alert('Gagal menghapus FAQ.');
       }
     }
   };
@@ -67,7 +93,7 @@ export default function AdminFAQManagement() {
     <div className="p-8 font-['Plus_Jakarta_Sans',sans-serif]">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Manajemen FAQ (Admin POV)</h1>
+          <h1 className="text-3xl font-bold mb-2">FAQ (Admin POV)</h1>
           <p className="text-gray-600">Kelola dan perbarui daftar Tanya Jawab (FAQ) bantuan mahasiswa</p>
         </div>
         {!editingId && (
@@ -81,7 +107,12 @@ export default function AdminFAQManagement() {
         )}
       </div>
 
-      {editingId ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16 text-gray-500 gap-2">
+          <Loader2 className="animate-spin text-[#007bff]" size={24} />
+          <span>Memuat FAQ...</span>
+        </div>
+      ) : editingId ? (
         /* Edit or Create View */
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 max-w-2xl">
           <h2 className="text-xl font-bold mb-6 text-gray-800">

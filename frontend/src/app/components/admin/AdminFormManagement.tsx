@@ -1,12 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, FileText } from 'lucide-react';
-import { getAllFormTemplates, mockFormTemplates, FormTemplate } from '../../utils/formTemplates';
+import { fetchAllFormTemplates, deleteFormTemplate, FormTemplate } from '../../utils/formTemplates';
 import FormBuilder from './FormBuilder';
 
 export default function AdminFormManagement() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormTemplate | undefined>(undefined);
-  const templates = getAllFormTemplates();
+  const [templates, setTemplates] = useState<FormTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadTemplates = async () => {
+    setLoading(true);
+    try {
+      const list = await fetchAllFormTemplates();
+      setTemplates(list);
+    } catch (e) {
+      console.error('Gagal mengambil templates:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
 
   const handleCreateNew = () => {
     setEditingTemplate(undefined);
@@ -18,13 +35,14 @@ export default function AdminFormManagement() {
     setShowBuilder(true);
   };
 
-  const handleDelete = (templateId: string) => {
+  const handleDelete = async (templateId: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus template ini?')) {
-      const index = mockFormTemplates.findIndex((t) => t.id === templateId);
-      if (index >= 0) {
-        mockFormTemplates.splice(index, 1);
+      const success = await deleteFormTemplate(templateId);
+      if (success) {
         alert('Template berhasil dihapus!');
-        window.location.reload(); // Refresh to update list
+        loadTemplates();
+      } else {
+        alert('Gagal menghapus template.');
       }
     }
   };
@@ -32,7 +50,7 @@ export default function AdminFormManagement() {
   const handleSave = () => {
     setShowBuilder(false);
     setEditingTemplate(undefined);
-    window.location.reload(); // Refresh to update list
+    loadTemplates();
   };
 
   const handleCancel = () => {

@@ -1,7 +1,9 @@
-import { Eye, FileText, Clock, MessageCircle, Settings, BookOpen, HelpCircle, Layers } from 'lucide-react';
-import { Submission, getAllSubmissions, mockSubmissions } from '../../utils/submissions';
-import { mockFormTemplates } from '../../utils/formTemplates';
+import { useState, useEffect } from 'react';
+import { Eye, FileText, Clock, MessageCircle, Settings, BookOpen, HelpCircle } from 'lucide-react';
+import { Submission, fetchAllSubmissions, SubmissionStatus } from '../../utils/submissions';
+import { fetchAllFormTemplates, FormTemplate } from '../../utils/formTemplates';
 import { mockGuides, mockFAQs } from '../../utils/guides';
+import { api } from '../../utils/api';
 
 interface BerandaProps {
   onSectionChange?: (section: string) => void;
@@ -9,12 +11,59 @@ interface BerandaProps {
   userRole?: string;
 }
 
-export default function Beranda({ onSectionChange, onViewSubmissionDetail, userRole = 'mahasiswa' }: BerandaProps) {
-  // Load unified OOP submission instances from the centralized mock database
-  const allSubmissions: Submission[] = getAllSubmissions();
+interface DashboardStats {
+  pendingVerifications: number;
+  totalSubmissions: number;
+  approvedSubmissions: number;
+  rejectedSubmissions: number;
+  draftSubmissions: number;
+  recentActivity: Array<{ id: string; type: string; description: string; timestamp: string }>;
+}
 
-  // Dynamically filter submissions that are pending review
-  const pendingVerifications = allSubmissions.filter((sub) => sub.isPending());
+export default function Beranda({ onSectionChange, onViewSubmissionDetail, userRole = 'mahasiswa' }: BerandaProps) {
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [pendingVerifications, setPendingVerifications] = useState<Submission[]>([]);
+  const [templates, setTemplates] = useState<FormTemplate[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBerandaData = async () => {
+      setLoading(true);
+      try {
+        const [subList, tplList, statsData, pendingData] = await Promise.all([
+          fetchAllSubmissions(),
+          fetchAllFormTemplates(),
+          api.get<DashboardStats>('/dashboard/stats').catch(() => null),
+          api.get<any[]>('/verifications').catch(() => [])
+        ]);
+        setSubmissions(subList || []);
+        setTemplates(tplList || []);
+        setStats(statsData);
+
+        const mappedPending = Array.isArray(pendingData) ? pendingData.map((s: any) => {
+          return new Submission({
+            id: s.submission_id,
+            jenisSurat: s.letter_type,
+            keperluan: s.keperluan || 'Keperluan Akademik',
+            tanggalPengajuan: s.created_at,
+            status: SubmissionStatus.PENDING,
+            submitterName: s.submitter_name,
+            submitterNim: s.submitter_nim || '',
+            formData: {}
+          });
+        }) : [];
+        setPendingVerifications(mappedPending);
+      } catch (e) {
+        console.error('Gagal mengambil data beranda:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadBerandaData();
+  }, []);
+
+  const allSubmissions = submissions;
 
   // Show all recent submissions (newest first, exclude drafts for user preview)
   const recentSubmissions = [...allSubmissions]
@@ -27,14 +76,14 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
         <h1 className="text-3xl font-bold mb-2">Selamat Datang di Admin Panel Schola</h1>
         <p className="text-gray-600 mb-8">IPB Academic Help Center - Kontrol Ringkasan Administratif</p>
 
-        {/* 4 Administrative KPI Cards */}
+        {/* 4 Administrative KPI Cards using live statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <button
             onClick={() => onSectionChange?.('admin-forms')}
             className="bg-white border border-gray-200 p-6 rounded-lg hover:border-[#007bff] transition-all text-left shadow-sm hover:shadow"
           >
             <Settings className="text-[#007bff] mb-3" size={32} />
-            <p className="text-2xl font-bold text-gray-800">{mockFormTemplates.length}</p>
+            <p className="text-2xl font-bold text-gray-800">{templates.length}</p>
             <p className="font-semibold text-sm text-gray-700 mt-1">Form Templates</p>
             <p className="text-xs text-gray-500 mt-0.5">Kelola Formulir & Field</p>
           </button>
@@ -44,7 +93,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
             className="bg-white border border-gray-200 p-6 rounded-lg hover:border-[#007bff] transition-all text-left shadow-sm hover:shadow"
           >
             <FileText className="text-emerald-500 mb-3" size={32} />
-            <p className="text-2xl font-bold text-gray-800">{mockSubmissions.length}</p>
+            <p className="text-2xl font-bold text-gray-800">{stats ? stats.totalSubmissions : submissions.length}</p>
             <p className="font-semibold text-sm text-gray-700 mt-1">Total Pengajuan</p>
             <p className="text-xs text-gray-500 mt-0.5">Audit & Validasi Surat</p>
           </button>
@@ -87,7 +136,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
               </button>
             </div>
             <div className="divide-y divide-gray-150">
-              {mockSubmissions.slice(0, 3).map((sub) => (
+              {submissions.slice(0, 3).map((sub) => (
                 <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                   <div>
                     <p className="font-semibold text-sm text-gray-800">{sub.jenisSurat}</p>
@@ -98,7 +147,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
                   </span>
                 </div>
               ))}
-              {mockSubmissions.length === 0 && (
+              {submissions.length === 0 && (
                 <p className="p-6 text-center text-xs text-gray-500">Belum ada pengajuan masuk</p>
               )}
             </div>
@@ -119,7 +168,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
               </button>
             </div>
             <div className="divide-y divide-gray-150">
-              {mockFormTemplates.slice(0, 3).map((tpl) => (
+              {templates.slice(0, 3).map((tpl) => (
                 <div key={tpl.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                   <div>
                     <p className="font-semibold text-sm text-gray-800">{tpl.letterType}</p>

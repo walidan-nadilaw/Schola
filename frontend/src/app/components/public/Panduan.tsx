@@ -1,41 +1,60 @@
-import { useState } from 'react';
-import { BookOpen, FileText, Clock, CheckCircle, Download, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, FileText, Clock, CheckCircle, Download, ChevronDown, HelpCircle } from 'lucide-react';
 import imgBgPageTitleScaled1 from "../../../imports/LandingPage/891b7e209714ed31573053818da4963bc230914c.png";
-import { mockGuides, mockFAQs } from '../../utils/guides';
+import { mockGuides } from '../../utils/guides';
+import { api } from '../../utils/api';
 
 interface PanduanProps {
   onAjukan?: (letterType: string) => void;
 }
 
+interface LetterTypeItem {
+  id: string;
+  name: string;
+  description: string;
+  requirements: string[];
+  processTime: string;
+}
+
+interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
 export default function Panduan({ onAjukan }: PanduanProps) {
   const [expandedLetter, setExpandedLetter] = useState<string | null>(null);
+  const [letterTypes, setLetterTypes] = useState<LetterTypeItem[]>([]);
+  const [faqs, setFaqs] = useState<FAQItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const letterTypes = [
-    {
-      name: 'Surat Keterangan Aktif',
-      requirements: ['KTM (Kartu Tanda Mahasiswa)', 'KHS (Kartu Hasil Studi) terakhir', 'Foto 3x4 berwarna'],
-      processTime: '2-3 hari kerja',
-      description: 'Surat keterangan yang menyatakan bahwa mahasiswa masih aktif kuliah di IPB.'
-    },
-    {
-      name: 'Surat Izin Penelitian',
-      requirements: ['Proposal penelitian yang telah disetujui', 'Surat pengantar dari dosen pembimbing', 'KTM', 'Surat izin dari lokasi penelitian (jika ada)'],
-      processTime: '3-5 hari kerja',
-      description: 'Surat izin untuk melakukan penelitian di lokasi tertentu sebagai bagian dari tugas akhir atau penelitian akademik.'
-    },
-    {
-      name: 'Surat Cuti Akademik',
-      requirements: ['Surat pernyataan cuti bermaterai', 'Surat persetujuan orang tua/wali', 'KTM', 'KHS terakhir'],
-      processTime: '5-7 hari kerja',
-      description: 'Surat permohonan untuk mengambil cuti akademik dengan alasan tertentu.'
-    },
-    {
-      name: 'Surat Rekomendasi',
-      requirements: ['Curriculum Vitae (CV)', 'Transkrip nilai', 'KTM', 'Dokumen pendukung lainnya sesuai keperluan'],
-      processTime: '3-5 hari kerja',
-      description: 'Surat rekomendasi dari institusi untuk keperluan beasiswa, magang, atau keperluan akademik lainnya.'
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        // Fetch form templates
+        const templatesData = await api.get<any[]>('/templates');
+        const mappedLetters = (templatesData || []).map((t) => ({
+          id: t.id,
+          name: t.letter_type,
+          description: t.description || `Pengajuan dokumen ${t.letter_type} secara online.`,
+          requirements: (t.fields || []).map((f: any) => f.label || f.name),
+          processTime: '2-5 hari kerja'
+        }));
+        setLetterTypes(mappedLetters);
+
+        // Fetch FAQs
+        const faqsData = await api.get<any[]>('/faqs');
+        setFaqs(faqsData || []);
+      } catch (err) {
+        console.error("Gagal memuat data panduan:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const toggleLetter = (letterName: string) => {
     setExpandedLetter(expandedLetter === letterName ? null : letterName);
@@ -65,7 +84,7 @@ export default function Panduan({ onAjukan }: PanduanProps) {
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6">Panduan Langkah demi Langkah</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mockGuides.map((guide, index) => (
+            {mockGuides.map((guide) => (
               <div key={guide.id} className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-[#007bff] p-3 rounded-lg text-white">
@@ -91,60 +110,69 @@ export default function Panduan({ onAjukan }: PanduanProps) {
         {/* Letter Types & Requirements with Dropdowns */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6">Jenis Surat & Persyaratan</h2>
-          <div className="space-y-4">
-            {letterTypes.map((letter, index) => (
-              <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleLetter(letter.name)}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <FileText className="text-[#007bff]" size={24} />
-                    <div className="text-left">
-                      <h3 className="font-bold text-lg">{letter.name}</h3>
-                      <p className="text-sm text-gray-600">{letter.description}</p>
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Memuat jenis surat...</div>
+          ) : letterTypes.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <FileText className="mx-auto mb-4 text-gray-400" size={48} />
+              <p className="text-gray-600">Belum ada jenis surat terdaftar di database.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {letterTypes.map((letter) => (
+                <div key={letter.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                  <button
+                    onClick={() => toggleLetter(letter.name)}
+                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="text-[#007bff]" size={24} />
+                      <div className="text-left">
+                        <h3 className="font-bold text-lg">{letter.name}</h3>
+                        <p className="text-sm text-gray-600">{letter.description}</p>
+                      </div>
                     </div>
-                  </div>
-                  <ChevronDown
-                    className={`text-gray-400 transition-transform ${expandedLetter === letter.name ? 'rotate-180' : ''}`}
-                    size={24}
-                  />
-                </button>
+                    <ChevronDown
+                      className={`text-gray-400 transition-transform ${expandedLetter === letter.name ? 'rotate-180' : ''}`}
+                      size={24}
+                    />
+                  </button>
 
-                {expandedLetter === letter.name && (
-                  <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                    <div className="grid grid-cols-2 gap-6 mb-4">
-                      <div>
-                        <p className="text-sm font-bold text-gray-700 mb-3">Persyaratan Dokumen:</p>
-                        <ul className="space-y-2">
-                          {letter.requirements.map((req, reqIndex) => (
-                            <li key={reqIndex} className="flex items-start gap-2 text-sm text-gray-700">
-                              <CheckCircle className="text-green-500 flex-shrink-0 mt-0.5" size={16} />
-                              <span>{req}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-700 mb-3">Waktu Proses:</p>
-                        <p className="flex items-center gap-2 text-sm text-gray-700 mb-4">
-                          <Clock className="text-[#007bff]" size={16} />
-                          {letter.processTime}
-                        </p>
-                        <button
-                          onClick={() => onAjukan?.(letter.name)}
-                          className="bg-[#007bff] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#0056b3] transition-colors flex items-center gap-2"
-                        >
-                          <FileText size={18} />
-                          Ajukan Surat Ini
-                        </button>
+                  {expandedLetter === letter.name && (
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                      <div className="grid grid-cols-2 gap-6 mb-4">
+                        <div>
+                          <p className="text-sm font-bold text-gray-700 mb-3">Persyaratan Dokumen:</p>
+                          <ul className="space-y-2">
+                            {letter.requirements.map((req, reqIndex) => (
+                              <li key={reqIndex} className="flex items-start gap-2 text-sm text-gray-700">
+                                <CheckCircle className="text-green-500 flex-shrink-0 mt-0.5" size={16} />
+                                <span>{req}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-700 mb-3">Waktu Proses:</p>
+                          <p className="flex items-center gap-2 text-sm text-gray-700 mb-4">
+                            <Clock className="text-[#007bff]" size={16} />
+                            {letter.processTime}
+                          </p>
+                          <button
+                            onClick={() => onAjukan?.(letter.name)}
+                            className="bg-[#007bff] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#0056b3] transition-colors flex items-center gap-2"
+                          >
+                            <FileText size={18} />
+                            Ajukan Surat Ini
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Download Guide */}
@@ -164,17 +192,26 @@ export default function Panduan({ onAjukan }: PanduanProps) {
         {/* FAQ Section */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
           <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions (FAQ)</h2>
-          <div className="space-y-4">
-            {mockFAQs.map((faq) => (
-              <details key={faq.id} className="border-b pb-4 cursor-pointer group">
-                <summary className="font-medium flex items-center justify-between">
-                  <span>{faq.question}</span>
-                  <ChevronDown className="text-gray-400 group-open:rotate-180 transition-transform" size={20} />
-                </summary>
-                <p className="mt-3 text-gray-600 ml-4 text-sm leading-relaxed">{faq.answer}</p>
-              </details>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Memuat FAQ...</div>
+          ) : faqs.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <HelpCircle className="mx-auto mb-4 text-gray-400" size={48} />
+              <p className="text-gray-600">Belum ada FAQ terdaftar di database.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {faqs.map((faq) => (
+                <details key={faq.id} className="border-b pb-4 cursor-pointer group">
+                  <summary className="font-medium flex items-center justify-between">
+                    <span>{faq.question}</span>
+                    <ChevronDown className="text-gray-400 group-open:rotate-180 transition-transform" size={20} />
+                  </summary>
+                  <p className="mt-3 text-gray-600 ml-4 text-sm leading-relaxed">{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

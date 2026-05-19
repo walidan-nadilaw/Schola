@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import imgHeader from "../../../imports/Signing/fb4b976284f353796ffb0e836979232591a38ec0.png";
 import { User } from '../../utils/users';
+import { api } from '../../utils/api';
 
 interface SignInPageProps {
   onSignIn: (user: User) => void;
@@ -12,60 +13,62 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const performLogin = async (loginEmail: string, loginPassword: string) => {
+    setError('');
+    setLoading(true);
+    try {
+      const response = await api.post<{ user: any; token: string; expiresIn: number }>('/auth/login', {
+        email: loginEmail,
+        password: loginPassword
+      });
+
+      // Save token to localStorage
+      localStorage.setItem('schola_token', response.token);
+      
+      // Map and instanciate User class
+      const loggedUser = new User({
+        id: response.user.id,
+        name: response.user.name,
+        role: response.user.role,
+        department: response.user.department || response.user.position || 'Bagian Akademik',
+        email: response.user.email,
+        nim: response.user.nim,
+        fakultas: response.user.fakultas,
+        program: response.user.program,
+        nip: response.user.nip,
+        position: response.user.position
+      });
+
+      onSignIn(loggedUser);
+    } catch (e: any) {
+      setError(e.message || 'Email atau password salah');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleQuickLogin = (role: 'mahasiswa' | 'verifikator' | 'admin') => {
     if (role === 'mahasiswa') {
-      onSignIn(new User({
-        id: 'U_STD_001',
-        name: 'Naufal Akmal',
-        role: 'mahasiswa',
-        department: 'Ilmu Komputer',
-        email: 'naufal@apps.ipb.ac.id'
-      }));
+      setEmail('naufal@apps.ipb.ac.id');
+      setPassword('mahasiswa123');
+      performLogin('naufal@apps.ipb.ac.id', 'mahasiswa123');
     } else if (role === 'verifikator') {
-      onSignIn(new User({
-        id: 'U002',
-        name: 'Dr. Siti Rahayu',
-        role: 'verifikator',
-        department: 'Departemen Agronomi',
-        email: 'siti.rahayu@ipb.ac.id'
-      }));
+      setEmail('siti.rahayu@ipb.ac.id');
+      setPassword('verifier123');
+      performLogin('siti.rahayu@ipb.ac.id', 'verifier123');
     } else {
-      onSignIn(new User({
-        id: 'U_ADM_001',
-        name: 'Rina Kusuma (Admin)',
-        role: 'admin',
-        department: 'Bagian Akademik',
-        email: 'rina.kusuma@ipb.ac.id'
-      }));
+      setEmail('rina.kusuma@ipb.ac.id');
+      setPassword('admin123');
+      performLogin('rina.kusuma@ipb.ac.id', 'admin123');
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Dynamically assign role based on email input for a standard submit flow
-    const lowerEmail = email.toLowerCase();
-    let assignedRole: 'mahasiswa' | 'verifikator' | 'admin' = 'mahasiswa';
-    let assignedName = 'Naufal Akmal';
-    let assignedId = 'U_STD_001';
-
-    if (lowerEmail.includes('admin')) {
-      assignedRole = 'admin';
-      assignedName = 'Rina Kusuma (Admin)';
-      assignedId = 'U_ADM_001';
-    } else if (lowerEmail.includes('dosen') || lowerEmail.includes('siti') || lowerEmail.includes('ahmad') || lowerEmail.includes('budi')) {
-      assignedRole = 'verifikator';
-      assignedName = 'Dr. Siti Rahayu';
-      assignedId = 'U002';
-    }
-
-    onSignIn(new User({
-      id: assignedId,
-      name: assignedName,
-      role: assignedRole,
-      department: assignedRole === 'admin' ? 'Bagian Akademik' : assignedRole === 'verifikator' ? 'Departemen Agronomi' : 'Ilmu Komputer',
-      email: email
-    }));
+    performLogin(email, password);
   };
 
   return (
@@ -103,9 +106,9 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
       <div className="flex-1 bg-[#f9fafb] flex items-center justify-center py-12">
         <div className="bg-white drop-shadow-[0px_10px_7.5px_rgba(0,0,0,0.1),0px_4px_3px_rgba(0,0,0,0.1)] rounded-[10px] w-[448px] p-8">
           {/* Logo */}
-          <div className="flex justify-center mb-8">
+          <button type="button" onClick={onBackToHome} className="flex justify-center mb-8 mx-auto hover:opacity-80 transition-opacity">
             <img alt="Schola Logo" className="h-[64px] w-[175.313px] object-cover" src={imgHeader} />
-          </div>
+          </button>
 
           {/* Heading */}
           <h1 className="text-[28px] leading-[42px] text-black text-center mb-2">
@@ -116,41 +119,14 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
             Masuk ke Schola: IPB Academic Help Center
           </p>
 
-          {/* Demo Accounts Panel */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm">
-            <p className="font-bold text-[#007bff] mb-3 text-center flex items-center justify-center gap-1">
-              🔐 Akun Demo (Masuk Cepat)
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('mahasiswa')}
-                className="p-2 bg-white border border-blue-200 rounded hover:bg-blue-100 text-xs font-semibold text-gray-800 transition-all flex flex-col items-center gap-1 shadow-sm"
-              >
-                <span>👨‍🎓</span>
-                <span>Mahasiswa</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('verifikator')}
-                className="p-2 bg-white border border-blue-200 rounded hover:bg-blue-100 text-xs font-semibold text-gray-800 transition-all flex flex-col items-center gap-1 shadow-sm"
-              >
-                <span>👩‍🏫</span>
-                <span>Verifier</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin')}
-                className="p-2 bg-white border border-blue-200 rounded hover:bg-blue-100 text-xs font-semibold text-gray-800 transition-all flex flex-col items-center gap-1 shadow-sm"
-              >
-                <span>🛠️</span>
-                <span>Admin</span>
-              </button>
-            </div>
-          </div>
-
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg text-sm font-medium">
+                ⚠️ {error}
+              </div>
+            )}
+
             {/* Email Input */}
             <div className="space-y-2">
               <label className="block text-[16px] leading-[24px] text-black">
@@ -202,9 +178,20 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full h-[48px] bg-[#007bff] hover:bg-[#0056b3] rounded-[10px] text-white text-[16px] leading-[24px] transition-colors"
+              disabled={loading}
+              className="w-full h-[48px] bg-[#007bff] hover:bg-[#0056b3] disabled:bg-blue-300 rounded-[10px] text-white text-[16px] leading-[24px] transition-colors flex items-center justify-center gap-2"
             >
-              Masuk
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Memproses...</span>
+                </>
+              ) : (
+                'Masuk'
+              )}
             </button>
           </form>
 

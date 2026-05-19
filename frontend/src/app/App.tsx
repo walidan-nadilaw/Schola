@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Bell, LogOut } from 'lucide-react';
+
 import LandingPage from './components/public/LandingPage';
 import SignInPage from './components/public/SignInPage';
 import Sidebar from './components/public/Sidebar';
@@ -13,344 +15,187 @@ import AdminFormManagement from './components/admin/AdminFormManagement';
 import AdminPanduanManagement from './components/admin/AdminPanduanManagement';
 import AdminFAQManagement from './components/admin/AdminFAQManagement';
 import AdminSubmissions from './components/admin/AdminSubmissions';
+import AdminUserManagement from './components/admin/AdminUserManagement';
 import SubmissionDetail from './components/public/SubmissionDetail';
 import { User } from './utils/users';
+import { TOKEN_KEY, api } from './utils/api';
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('isLoggedIn') === 'true';
-  });
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+// ─── Auth state ───────────────────────────────────────────────
+interface AuthState {
+  isLoggedIn: boolean;
+  currentUser: User | null;
+}
+
+function loadAuth(): AuthState {
+  try {
     const saved = localStorage.getItem('currentUser');
-    if (saved) {
-      try {
-        return new User(JSON.parse(saved));
-      } catch (e) {
-        return null;
-      }
+    if (localStorage.getItem('isLoggedIn') === 'true' && saved) {
+      return { isLoggedIn: true, currentUser: new User(JSON.parse(saved)) };
     }
-    if (localStorage.getItem('isLoggedIn') === 'true') {
-      return new User({
-        id: 'U_STD_001',
-        name: 'Naufal Akmal',
-        role: 'mahasiswa',
-        department: 'Ilmu Komputer',
-        email: 'naufal@apps.ipb.ac.id'
-      });
-    }
-    return null;
-  });
-  const [showSignIn, setShowSignIn] = useState(false);
-  const [showPanduan, setShowPanduan] = useState(false);
-  const [viewingPublicLanding, setViewingPublicLanding] = useState(false);
-  const [activeSection, setActiveSection] = useState('beranda');
-  const [preSelectedLetter, setPreSelectedLetter] = useState('');
+  } catch (_) { /* ignore parse error */ }
+  return { isLoggedIn: false, currentUser: null };
+}
+
+// ─── Page title map (reactive via useLocation) ─────────────────
+function usePageTitle(): string {
+  const { pathname } = useLocation();
+  if (pathname.startsWith('/submission/')) return 'Detail Pengajuan';
+  if (pathname.startsWith('/ajuan/edit/')) return 'Edit Pengajuan';
+  const titles: Record<string, string> = {
+    '/beranda': 'Dashboard',
+    '/ajuan': 'Ajukan Surat Baru',
+    '/diajukan': 'Riwayat Pengajuan',
+    '/verifikasi': 'Verifikasi Pengajuan',
+    '/panduan': 'Panduan',
+    '/chatbot': 'Chatbot Bantuan',
+    '/admin/forms': 'Manajemen Template Form',
+    '/admin/submissions': 'Semua Pengajuan',
+    '/admin/panduan': 'Manajemen Panduan',
+    '/admin/faq': 'Manajemen FAQ',
+    '/admin/users': 'Manajemen Pengguna',
+  };
+  return titles[pathname] ?? 'Schola';
+}
+
+// ─── Route wrappers that use useParams ───────────────────────
+function SubmissionDetailPage() {
+  const params = useParams();
+  const id = params["*"] || params.id;
+  const navigate = useNavigate();
+  return (
+    <SubmissionDetail
+      submissionId={decodeURIComponent(id ?? '')}
+      onBack={() => navigate(-1)}
+      onEdit={(sid) => navigate(`/ajuan/edit/${encodeURIComponent(sid)}`)}
+    />
+  );
+}
+
+function AjuanEditPage({ onBack }: { onBack: () => void }) {
+  const params = useParams();
+  const id = params["*"] || params.id;
+  return (
+    <Ajuan
+      editingSubmissionId={decodeURIComponent(id ?? '')}
+      onBackToList={onBack}
+    />
+  );
+}
+
+// ─── Authenticated shell (sidebar + topbar + routes) ──────────
+function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void }) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [viewingSubmissionId, setViewingSubmissionId] = useState<string | null>(null);
-  const [editingSubmissionId, setEditingSubmissionId] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const title = usePageTitle();
 
-  const handleAjukanFromLanding = (selectedLetter: string) => {
-    setPreSelectedLetter(selectedLetter);
-    setShowSignIn(true);
-    setActiveSection('ajuan');
-  };
+  // Derive sidebar active key from path (e.g. "/diajukan" → "diajukan")
+  const activeSidebarKey = pathname.split('/').filter(Boolean).join('/') || 'beranda';
 
-  const handleNavigateFromLanding = (section: string) => {
-    if (section === 'panduan') {
-      setShowPanduan(true);
-    } else {
-      setShowSignIn(true);
-      setActiveSection(section);
+  // Fetch notifications periodically or on notification menu click
+  useEffect(() => {
+    if (auth.isLoggedIn) {
+      api.get<any[]>('/notifications')
+        .then(data => setNotifications(data || []))
+        .catch(err => console.error("Gagal mengambil notifikasi:", err));
     }
-  };
-
-  const handleSectionChange = (section: string) => {
-    // Clear any active detail/edit views when navigating via sidebar
-    setViewingSubmissionId(null);
-    setEditingSubmissionId(null);
-    setActiveSection(section);
-  };
-
-  const renderContent = () => {
-    // If viewing submission detail, show detail page
-    if (viewingSubmissionId) {
-      return (
-        <SubmissionDetail
-          submissionId={viewingSubmissionId}
-          onBack={() => setViewingSubmissionId(null)}
-          onEdit={(id) => {
-            setViewingSubmissionId(null);
-            setEditingSubmissionId(id);
-          }}
-        />
-      );
-    }
-
-    // If editing submission, show form in edit mode
-    if (editingSubmissionId) {
-      return (
-        <Ajuan
-          editingSubmissionId={editingSubmissionId}
-          onBackToList={() => {
-            setEditingSubmissionId(null);
-            setActiveSection('diajukan');
-          }}
-        />
-      );
-    }
-
-    switch (activeSection) {
-      case 'beranda':
-        return (
-          <Beranda
-            userRole={currentUser?.role}
-            onSectionChange={(section) => {
-              setViewingSubmissionId(null);
-              setEditingSubmissionId(null);
-              setActiveSection(section);
-            }}
-            onViewSubmissionDetail={(id) => setViewingSubmissionId(id)}
-          />
-        );
-      case 'ajuan':
-        return <Ajuan preSelectedLetter={preSelectedLetter} />;
-      case 'pengajuan':
-      case 'diajukan':
-        return (
-          <Diajukan
-            onNewSubmission={() => {
-              setActiveSection('ajuan');
-              setEditingSubmissionId(null);
-            }}
-            onViewDetail={(id) => setViewingSubmissionId(id)}
-            onEdit={(id) => setEditingSubmissionId(id)}
-          />
-        );
-      case 'verifikasi':
-        return <Verifikasi />;
-      case 'panduan':
-        return (
-          <div className="p-8 h-screen overflow-y-auto">
-            <Panduan
-              onAjukan={(letterType) => {
-                setPreSelectedLetter(letterType);
-                setActiveSection('ajuan');
-              }}
-            />
-          </div>
-        );
-      case 'chatbot':
-        return <Chatbot />;
-      case 'admin-forms':
-        return <AdminFormManagement />;
-      case 'admin-submissions':
-        return <AdminSubmissions onViewDetail={(id) => setViewingSubmissionId(id)} />;
-      case 'admin-panduan':
-        return <AdminPanduanManagement />;
-      case 'admin-faq':
-        return <AdminFAQManagement />;
-      default:
-        return <Beranda onSectionChange={setActiveSection} />;
-    }
-  };
-
-  if ((!isLoggedIn || viewingPublicLanding) && !showSignIn) {
-    return (
-      <LandingPage
-        onLogin={() => {
-          if (isLoggedIn) {
-            setViewingPublicLanding(false);
-          } else {
-            setShowSignIn(true);
-          }
-        }}
-        onAjukan={(letterType) => {
-          if (isLoggedIn) {
-            setPreSelectedLetter(letterType);
-            setActiveSection('ajuan');
-            setViewingPublicLanding(false);
-          } else {
-            handleAjukanFromLanding(letterType);
-          }
-        }}
-        onNavigate={(section) => {
-          if (isLoggedIn) {
-            if (section === 'beranda') {
-              setViewingPublicLanding(false);
-            } else {
-              setActiveSection(section);
-              setViewingPublicLanding(false);
-            }
-          } else {
-            handleNavigateFromLanding(section);
-          }
-        }}
-        showPanduan={showPanduan}
-        onTogglePanduan={(show) => setShowPanduan(show)}
-        isLoggedIn={isLoggedIn}
-      />
-    );
-  }
-
-  if ((!isLoggedIn || viewingPublicLanding) && showSignIn) {
-    return (
-      <SignInPage
-        onSignIn={(user) => {
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          setCurrentUser(user);
-          setIsLoggedIn(true);
-          setViewingPublicLanding(false);
-          setShowSignIn(false);
-          if (user.role === 'admin') {
-            setActiveSection('admin-forms');
-          } else if (user.role === 'verifikator') {
-            setActiveSection('verifikasi');
-          } else {
-            setActiveSection('beranda');
-          }
-        }}
-        onBackToHome={() => setShowSignIn(false)}
-        onNavigate={(section) => {
-          setShowSignIn(false);
-          if (isLoggedIn) {
-            setActiveSection(section);
-            setViewingPublicLanding(false);
-          } else {
-            if (section === 'panduan') {
-              setShowPanduan(true);
-            } else {
-              handleNavigateFromLanding(section);
-            }
-          }
-        }}
-      />
-    );
-  }
+  }, [auth.isLoggedIn, showNotifications]);
 
   return (
     <div className="flex h-screen bg-gray-50 font-['Plus_Jakarta_Sans',sans-serif]">
       <Sidebar
-        activeSection={activeSection}
-        userRole={currentUser?.role || 'mahasiswa'}
-        onSectionChange={(section) => {
-          setViewingPublicLanding(false);
-          handleSectionChange(section);
-        }}
-        onLogoClick={() => {
-          setViewingPublicLanding(true);
-          setViewingSubmissionId(null);
-          setEditingSubmissionId(null);
-        }}
-        onPanduanClick={() => {
-          setActiveSection('panduan');
-          setViewingSubmissionId(null);
-          setEditingSubmissionId(null);
-        }}
+        activeSection={activeSidebarKey}
+        userRole={auth.currentUser?.role ?? 'mahasiswa'}
+        onSectionChange={(s) => navigate(`/${s}`)}
+        onLogoClick={() => navigate('/')}
+        onPanduanClick={() => navigate('/panduan')}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
+        {/* ── Top bar ── */}
         <div className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">
-              {viewingSubmissionId ? 'Detail Pengajuan' :
-                editingSubmissionId ? 'Edit Pengajuan' :
-                activeSection === 'beranda' ? 'Dashboard' :
-                activeSection === 'ajuan' ? 'Ajukan Surat Baru' :
-                (activeSection === 'pengajuan' || activeSection === 'diajukan') ? 'Riwayat Pengajuan' :
-                activeSection === 'verifikasi' ? 'Verifikasi Pengajuan' :
-                activeSection === 'panduan' ? 'Panduan' :
-                activeSection === 'chatbot' ? 'Chatbot Bantuan' :
-                activeSection === 'admin-forms' ? 'Manajemen Template Form' : ''
-              }
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">Schola - IPB Academic Help Center</p>
+            <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+            <p className="text-sm text-gray-600 mt-1">Schola — IPB Academic Help Center</p>
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Notifications bell */}
             <div className="relative">
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
+                id="btn-notifications"
+                onClick={() => setShowNotifications((v) => !v)}
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Bell size={20} className="text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                {notifications.some((n) => !n.is_read) && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white" />
+                )}
               </button>
 
               {showNotifications && (
                 <>
-                  {/* Backdrop to close on click anywhere */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowNotifications(false)}
-                  ></div>
-
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200">
-                      <h3 className="font-bold text-lg">Notifikasi</h3>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                    <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                      <h3 className="font-bold text-gray-800">Notifikasi</h3>
+                      {notifications.some((n) => !n.is_read) && (
+                        <button
+                          onClick={async () => {
+                            for (const n of notifications) {
+                              if (!n.is_read) {
+                                await api.post(`/notifications/${n.id}/read`).catch(() => {});
+                              }
+                            }
+                            // Refresh list
+                            api.get<any[]>('/notifications').then((data) => setNotifications(data || []));
+                          }}
+                          className="text-xs text-[#007bff] hover:underline font-semibold"
+                        >
+                          Tandai Semua Dibaca
+                        </button>
+                      )}
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      <div
-                        onClick={() => {
-                          setViewingSubmissionId(null);
-                          setEditingSubmissionId(null);
-                          setActiveSection('diajukan');
-                          setShowNotifications(false);
-                        }}
-                        className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 bg-[#007bff] rounded-full mt-2"></div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">Pengajuan Surat Disetujui</p>
-                            <p className="text-xs text-gray-600 mt-1">Surat Keterangan Aktif Anda telah disetujui</p>
-                            <p className="text-xs text-gray-400 mt-1">2 jam yang lalu</p>
-                          </div>
+                    <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center text-sm text-gray-500">
+                          Belum ada notifikasi baru.
                         </div>
-                      </div>
-                      <div
-                        onClick={() => {
-                          setViewingSubmissionId(null);
-                          setEditingSubmissionId(null);
-                          setActiveSection('ajuan');
-                          setShowNotifications(false);
-                        }}
-                        className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 bg-[#007bff] rounded-full mt-2"></div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">Dokumen Perlu Dilengkapi</p>
-                            <p className="text-xs text-gray-600 mt-1">Mohon lengkapi dokumen pendukung untuk Surat Izin Penelitian</p>
-                            <p className="text-xs text-gray-400 mt-1">5 jam yang lalu</p>
+                      ) : (
+                        notifications.map((n) => (
+                          <div
+                            key={n.id}
+                            onClick={async () => {
+                              if (!n.is_read) {
+                                await api.post(`/notifications/${n.id}/read`).catch(() => {});
+                                // Refresh list
+                                api.get<any[]>('/notifications').then((data) => setNotifications(data || []));
+                              }
+                              if (n.action_url) {
+                                navigate(n.action_url);
+                              }
+                              setShowNotifications(false);
+                            }}
+                            className={`p-3 text-left hover:bg-gray-50 cursor-pointer transition-colors ${!n.is_read ? 'bg-blue-50/50' : ''}`}
+                          >
+                            <p className="text-xs text-[#007bff] font-bold uppercase mb-0.5">{n.type}</p>
+                            <p className="text-sm text-gray-800 font-semibold">{n.title}</p>
+                            <p className="text-xs text-gray-600 mt-0.5">{n.message}</p>
+                            <p className="text-2xs text-gray-400 mt-1">
+                              {new Date(n.created_at).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
                           </div>
-                        </div>
-                      </div>
-                      <div
-                        onClick={() => {
-                          setViewingSubmissionId(null);
-                          setEditingSubmissionId(null);
-                          setActiveSection('ajuan');
-                          setShowNotifications(false);
-                        }}
-                        className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 bg-gray-300 rounded-full mt-2"></div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm text-gray-700">Pengingat Deadline</p>
-                            <p className="text-xs text-gray-600 mt-1">Pengajuan surat akan ditutup dalam 3 hari</p>
-                            <p className="text-xs text-gray-400 mt-1">1 hari yang lalu</p>
-                          </div>
-                        </div>
-                      </div>
+                        ))
+                      )}
                     </div>
-                    <div className="p-3 text-center border-t border-gray-200">
-                      <button
-                        onClick={() => setShowNotifications(false)}
-                        className="text-sm text-[#007bff] hover:underline"
-                      >
+                    <div className="p-3 text-center border-t border-gray-200 bg-gray-50">
+                      <button onClick={() => setShowNotifications(false)} className="text-sm text-gray-600 hover:text-gray-800 font-semibold">
                         Tutup
                       </button>
                     </div>
@@ -359,29 +204,22 @@ export default function App() {
               )}
             </div>
 
+            {/* User avatar */}
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm font-medium">{currentUser?.name || 'Mahasiswa Guest'}</p>
+                <p className="text-sm font-medium">{auth.currentUser?.name ?? 'Pengguna'}</p>
                 <p className="text-xs text-gray-500">
-                  {currentUser?.role === 'mahasiswa' ? 'G6401231065' : currentUser?.email || 'Guest'}
+                  {auth.currentUser?.nim ?? auth.currentUser?.email ?? ''}
                 </p>
               </div>
               <div className="w-10 h-10 bg-[#007bff] rounded-full flex items-center justify-center text-white font-bold">
-                {currentUser?.getInitials() || 'M'}
+                {auth.currentUser?.getInitials() ?? 'M'}
               </div>
             </div>
 
             <button
-              onClick={() => {
-                localStorage.removeItem('isLoggedIn');
-                localStorage.removeItem('currentUser');
-                setCurrentUser(null);
-                setIsLoggedIn(false);
-                setViewingPublicLanding(false);
-                setShowSignIn(false);
-                setViewingSubmissionId(null);
-                setEditingSubmissionId(null);
-              }}
+              id="btn-logout"
+              onClick={onLogout}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               title="Logout"
             >
@@ -390,11 +228,155 @@ export default function App() {
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* ── Page content ── */}
         <div className="flex-1 overflow-y-auto">
-          {renderContent()}
+          <Routes>
+            <Route path="/beranda" element={
+              <Beranda
+                userRole={auth.currentUser?.role}
+                onSectionChange={(s) => navigate(`/${s}`)}
+                onViewSubmissionDetail={(id) => navigate(`/submission/${encodeURIComponent(id)}`)}
+              />
+            } />
+
+            <Route path="/ajuan" element={<Ajuan />} />
+
+            <Route path="/ajuan/edit/*" element={
+              <AjuanEditPage onBack={() => navigate('/diajukan')} />
+            } />
+
+            <Route path="/diajukan" element={
+              <Diajukan
+                onNewSubmission={() => navigate('/ajuan')}
+                onViewDetail={(id) => navigate(`/submission/${encodeURIComponent(id)}`)}
+                onEdit={(id) => navigate(`/ajuan/edit/${encodeURIComponent(id)}`)}
+              />
+            } />
+
+            <Route path="/pengajuan" element={<Navigate to="/diajukan" replace />} />
+
+            <Route path="/submission/*" element={<SubmissionDetailPage />} />
+
+            <Route path="/verifikasi" element={<Verifikasi />} />
+
+            <Route path="/panduan" element={
+              <div className="p-8 h-screen overflow-y-auto">
+                <Panduan
+                  onAjukan={(lt) => {
+                    navigate('/ajuan', { state: { preSelectedLetter: lt } });
+                  }}
+                />
+              </div>
+            } />
+
+            <Route path="/chatbot" element={<Chatbot />} />
+
+            {/* Admin routes */}
+            <Route path="/admin/forms" element={<AdminFormManagement />} />
+            <Route path="/admin/submissions" element={
+              <AdminSubmissions
+                onViewDetail={(id) => navigate(`/submission/${encodeURIComponent(id)}`)}
+              />
+            } />
+            <Route path="/admin/panduan" element={<AdminPanduanManagement />} />
+            <Route path="/admin/faq" element={<AdminFAQManagement />} />
+            <Route path="/admin/users" element={<AdminUserManagement />} />
+
+            {/* Catch-all: redirect to role-appropriate home */}
+            <Route path="*" element={
+              <Navigate to={
+                auth.currentUser?.role === 'admin'
+                  ? '/admin/forms'
+                  : '/beranda'
+              } replace />
+            } />
+          </Routes>
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Root component ───────────────────────────────────────────
+function AppContent({
+  auth,
+  onSignIn,
+  onLogout
+}: {
+  auth: AuthState;
+  onSignIn: (user: User) => void;
+  onLogout: () => void;
+}) {
+  const navigate = useNavigate();
+  const [showLandingPanduan, setShowLandingPanduan] = useState(false);
+
+  return (
+    <Routes>
+      {/* ── Public routes ── */}
+      <Route
+        path="/"
+        element={
+          <LandingPage
+            onLogin={() => navigate(auth.isLoggedIn ? '/beranda' : '/login')}
+            onAjukan={(lt) => navigate(auth.isLoggedIn ? '/ajuan' : '/login', { state: { preSelectedLetter: lt } })}
+            onNavigate={(section) => navigate(auth.isLoggedIn ? `/${section}` : '/login')}
+            showPanduan={showLandingPanduan}
+            onTogglePanduan={(val) => setShowLandingPanduan(val)}
+            isLoggedIn={auth.isLoggedIn}
+          />
+        }
+      />
+
+      <Route
+        path="/login"
+        element={
+          auth.isLoggedIn ? (
+            <Navigate to="/beranda" replace />
+          ) : (
+            <SignInPage
+              onSignIn={onSignIn}
+              onBackToHome={() => navigate('/')}
+              onNavigate={(path) => navigate(path)}
+            />
+          )
+        }
+      />
+
+      {/* ── Protected routes — wrapped in AppShell ── */}
+      <Route
+        path="/*"
+        element={
+          auth.isLoggedIn ? (
+            <AppShell auth={auth} onLogout={onLogout} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+    </Routes>
+  );
+}
+
+export default function App() {
+  const [auth, setAuth] = useState<AuthState>(loadAuth);
+
+  const handleSignIn = (user: User) => {
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    setAuth({ isLoggedIn: true, currentUser: user });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem(TOKEN_KEY);
+    setAuth({ isLoggedIn: false, currentUser: null });
+    window.location.href = '/';
+  };
+
+  return (
+    <BrowserRouter>
+      <AppContent auth={auth} onSignIn={handleSignIn} onLogout={handleLogout} />
+    </BrowserRouter>
   );
 }

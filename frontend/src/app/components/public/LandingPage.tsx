@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import imgImage1 from "../../../imports/LandingPage/fb4b976284f353796ffb0e836979232591a38ec0.png";
 import imgDashboardLayout from "../../../imports/LandingPage/750568cbefba0fc88c5a2bf3334de13b503195fa.png";
 import imgProtect from "../../../imports/LandingPage/f42a29141fc01fe878647557bfe66a578dc6f730.png";
@@ -6,6 +6,7 @@ import imgOpenBook from "../../../imports/LandingPage/01dca46ed0c13c5e30df200290
 import imgBgPageTitleScaled1 from "../../../imports/LandingPage/891b7e209714ed31573053818da4963bc230914c.png";
 import { ChevronDown } from 'lucide-react';
 import Panduan from './Panduan';
+import { api } from '../../utils/api';
 
 interface LandingPageProps {
   onLogin: () => void;
@@ -13,6 +14,7 @@ interface LandingPageProps {
   onNavigate?: (section: string) => void;
   showPanduan?: boolean;
   onTogglePanduan?: (show: boolean) => void;
+  isLoggedIn?: boolean;
 }
 
 export default function LandingPage({
@@ -20,9 +22,22 @@ export default function LandingPage({
   onAjukan,
   onNavigate,
   showPanduan = false,
-  onTogglePanduan
+  onTogglePanduan,
+  isLoggedIn = false
 }: LandingPageProps) {
   const [selectedLetter, setSelectedLetter] = useState('');
+  const [templates, setTemplates] = useState<{ id: string; letter_type: string }[]>([]);
+  const [faqs, setFaqs] = useState<{ id: string; question: string; answer: string }[]>([]);
+
+  useEffect(() => {
+    api.get<{ id: string; letter_type: string }[]>('/templates')
+      .then((data) => setTemplates(data))
+      .catch((err) => console.error("Gagal memuat template surat:", err));
+
+    api.get<{ id: string; question: string; answer: string }[]>('/faqs')
+      .then((data) => setFaqs(data))
+      .catch((err) => console.error("Gagal memuat FAQ:", err));
+  }, []);
 
   return (
     <div className="bg-white min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
@@ -65,7 +80,7 @@ export default function LandingPage({
             onClick={onLogin}
             className="bg-[#007bff] h-[35px] px-6 rounded-[5px] text-white text-[13.686px] hover:bg-[#0056b3] transition-colors font-normal"
           >
-            Sign In
+            {isLoggedIn ? 'Dashboard' : 'Sign In'}
           </button>
         </nav>
       </div>
@@ -111,9 +126,11 @@ export default function LandingPage({
                     className="bg-white h-[34px] w-[557px] rounded-[3px] px-4 pr-10 text-[#878787] text-[12.564px] appearance-none border border-gray-200"
                   >
                     <option value="">Pilih Jenis Surat</option>
-                    <option value="Surat Keterangan Aktif">Surat Keterangan Aktif</option>
-                    <option value="Surat Izin Penelitian">Surat Izin Penelitian</option>
-                    <option value="Surat Cuti Akademik">Surat Cuti Akademik</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.letter_type}>
+                        {t.letter_type}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[#928C8C]" size={18} />
                 </div>
@@ -180,18 +197,18 @@ export default function LandingPage({
           <div className="bg-gray-50 py-16">
             <h2 className="text-center font-bold text-[29.787px] mb-8">FAQ</h2>
             <div className="max-w-3xl mx-auto px-4 space-y-4">
-              <details className="bg-white rounded-lg p-6 cursor-pointer">
-                <summary className="font-medium text-lg">Bagaimana cara mengajukan surat?</summary>
-                <p className="mt-3 text-gray-600">Login ke sistem, pilih jenis surat, isi formulir, dan submit pengajuan Anda.</p>
-              </details>
-              <details className="bg-white rounded-lg p-6 cursor-pointer">
-                <summary className="font-medium text-lg">Berapa lama proses verifikasi?</summary>
-                <p className="mt-3 text-gray-600">Proses verifikasi biasanya memakan waktu 2-3 hari kerja setelah pengajuan disubmit.</p>
-              </details>
-              <details className="bg-white rounded-lg p-6 cursor-pointer">
-                <summary className="font-medium text-lg">Bagaimana cara melacak status pengajuan?</summary>
-                <p className="mt-3 text-gray-600">Anda dapat melihat status pengajuan di menu Pengajuan &gt; Diajukan setelah login.</p>
-              </details>
+              {faqs.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                  <p className="text-gray-600">Belum ada FAQ terdaftar di database.</p>
+                </div>
+              ) : (
+                faqs.map((faq) => (
+                  <details key={faq.id} className="bg-white rounded-lg p-6 cursor-pointer">
+                    <summary className="font-medium text-lg">{faq.question}</summary>
+                    <p className="mt-3 text-gray-600">{faq.answer}</p>
+                  </details>
+                ))
+              )}
             </div>
           </div>
         </>
