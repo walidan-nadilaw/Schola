@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Download, User, Calendar, FileText, CheckCircle, Edit2, XCircle, Clock, Eye, X } from 'lucide-react';
-import { Submission, SubmissionStatus, getSubmissionById } from '../../utils/submissions';
+import { Submission, SubmissionStatus, fetchSubmissionById } from '../../utils/submissions';
 
 interface SubmissionDetailProps {
   submissionId: string;
@@ -10,9 +10,35 @@ interface SubmissionDetailProps {
 
 export default function SubmissionDetail({ submissionId, onBack, onEdit }: SubmissionDetailProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [submission, setSubmission] = useState<Submission | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Retrieve the unified OOP submission instance from mock database
-  const submission = getSubmissionById(submissionId);
+  useEffect(() => {
+    const loadSubmission = async () => {
+      setLoading(true);
+      try {
+        const sub = await fetchSubmissionById(submissionId);
+        setSubmission(sub);
+      } catch (e) {
+        console.error('Gagal memuat detail pengajuan:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSubmission();
+  }, [submissionId]);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center flex flex-col items-center justify-center gap-3 h-64">
+        <svg className="animate-spin h-8 w-8 text-[#007bff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p className="text-gray-500 font-medium">Memuat detail pengajuan...</p>
+      </div>
+    );
+  }
 
   // Fallback in case submission isn't found
   if (!submission) {
@@ -163,12 +189,37 @@ export default function SubmissionDetail({ submissionId, onBack, onEdit }: Submi
                   <p className="text-sm text-gray-600 mb-1">Jenis Surat</p>
                   <p className="font-bold">{submission.jenisSurat}</p>
                 </div>
-                {Object.entries(submission.formData).map(([key, value]) => (
-                  <div key={key} className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">{key}</p>
-                    <p className="font-medium">{value}</p>
-                  </div>
-                ))}
+                {Object.entries(submission.formData).map(([key, value]) => {
+                  const isFileArray = Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && ('path' in value[0] || 'file_path' in value[0]);
+                  
+                  return (
+                    <div key={key} className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">{key}</p>
+                      {isFileArray ? (
+                        <div className="space-y-2 mt-1">
+                          {(value as any[]).map((file, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                const filePath = file.path || file.file_path;
+                                if (filePath) {
+                                  const url = filePath.startsWith('http') ? filePath : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${filePath}`;
+                                  window.open(url, '_blank');
+                                }
+                              }}
+                              className="flex items-center gap-2 text-[#007bff] hover:underline text-sm font-semibold"
+                            >
+                              <FileText size={16} />
+                              <span>{file.name || 'Dokumen'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="font-medium">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -187,7 +238,14 @@ export default function SubmissionDetail({ submissionId, onBack, onEdit }: Submi
                         </div>
                       </div>
                       <button
-                        onClick={() => alert(`Mengunduh lampiran: ${file.name}`)}
+                        onClick={() => {
+                          if (file.path) {
+                            const url = file.path.startsWith('http') ? file.path : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${file.path}`;
+                            window.open(url, '_blank');
+                          } else {
+                            alert(`Mengunduh lampiran: ${file.name}`);
+                          }
+                        }}
                         className="p-2 text-[#007bff] hover:bg-blue-50 rounded-lg transition-colors"
                       >
                         <Download size={16} />

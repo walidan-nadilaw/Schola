@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Plus, Trash2, GripVertical, Save, X } from 'lucide-react';
-import { FormField, FieldType, FormTemplate, mockFormTemplates } from '../../utils/formTemplates';
+import { FormField, FieldType, FormTemplate, createFormTemplate, updateFormTemplate } from '../../utils/formTemplates';
 
 interface FormBuilderProps {
   template?: FormTemplate;
@@ -10,7 +10,20 @@ interface FormBuilderProps {
 
 export default function FormBuilder({ template, onSave, onCancel }: FormBuilderProps) {
   const [letterType, setLetterType] = useState(template?.letterType || '');
-  const [fields, setFields] = useState<FormField[]>(template?.fields || []);
+  const [fields, setFields] = useState<FormField[]>(() => {
+    if (template?.fields && template.fields.length > 0) {
+      return template.fields;
+    }
+    return [
+      {
+        id: 'field-judul',
+        label: 'Judul',
+        type: 'short_answer',
+        required: true,
+        placeholder: 'Masukkan judul pengajuan surat...'
+      }
+    ];
+  });
   const fieldsEndRef = useRef<HTMLDivElement>(null);
 
   const fieldTypes: { value: FieldType; label: string }[] = [
@@ -46,6 +59,11 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
   };
 
   const removeField = (index: number) => {
+    const field = fields[index];
+    if (field.id === 'field-judul') {
+      alert('Field Judul wajib ada dan tidak dapat dihapus!');
+      return;
+    }
     setFields(fields.filter((_, i) => i !== index));
   };
 
@@ -68,7 +86,7 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
     updateField(fieldIndex, { options });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!letterType.trim()) {
       alert('Nama surat harus diisi!');
       return;
@@ -79,25 +97,23 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
       return;
     }
 
-    const newTemplate: FormTemplate = {
-      id: template?.id || `template-${Date.now()}`,
-      letterType,
-      fields,
-      createdAt: template?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: 'Admin',
-    };
+    try {
+      let result;
+      if (template?.id) {
+        result = await updateFormTemplate(template.id, letterType, fields);
+      } else {
+        result = await createFormTemplate(letterType, fields);
+      }
 
-    // Save to mock storage
-    const existingIndex = mockFormTemplates.findIndex((t) => t.id === newTemplate.id);
-    if (existingIndex >= 0) {
-      mockFormTemplates[existingIndex] = newTemplate;
-    } else {
-      mockFormTemplates.push(newTemplate);
+      if (result) {
+        alert('Template berhasil disimpan!');
+        onSave();
+      } else {
+        alert('Gagal menyimpan template.');
+      }
+    } catch (e: any) {
+      alert(`Gagal menyimpan template: ${e.message}`);
     }
-
-    alert('Template berhasil disimpan!');
-    onSave();
   };
 
   const needsOptions = (type: FieldType) => {
@@ -171,8 +187,9 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
                     <input
                       type="text"
                       value={field.label}
+                      disabled={field.id === 'field-judul'}
                       onChange={(e) => updateField(index, { label: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#007bff]"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#007bff] disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
 
@@ -182,6 +199,7 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
                       <label className="block font-medium mb-2">Tipe Field</label>
                       <select
                         value={field.type}
+                        disabled={field.id === 'field-judul'}
                         onChange={(e) => {
                           const newType = e.target.value as FieldType;
                           const updates: Partial<FormField> = { type: newType };
@@ -204,7 +222,7 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
 
                           updateField(index, updates);
                         }}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#007bff]"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#007bff] disabled:bg-gray-100 disabled:text-gray-500"
                       >
                         {fieldTypes.map((type) => (
                           <option key={type.value} value={type.value}>
@@ -219,8 +237,9 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
                         <input
                           type="checkbox"
                           checked={field.required}
+                          disabled={field.id === 'field-judul'}
                           onChange={(e) => updateField(index, { required: e.target.checked })}
-                          className="w-4 h-4 text-[#007bff] focus:ring-[#007bff] rounded"
+                          className="w-4 h-4 text-[#007bff] focus:ring-[#007bff] rounded disabled:opacity-50"
                         />
                         <span className="font-medium">Wajib diisi</span>
                       </label>
@@ -342,12 +361,14 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
                   )}
                 </div>
 
-                <button
-                  onClick={() => removeField(index)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 size={20} />
-                </button>
+                {field.id !== 'field-judul' && (
+                  <button
+                    onClick={() => removeField(index)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                )}
               </div>
             </div>
           ))}

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, X, ChevronUp, ChevronDown, User as UserIcon } from 'lucide-react';
-import { searchUsers, SelectedVerifier } from '../../utils/users';
+import { fetchVerifiers, SelectedVerifier, User } from '../../utils/users';
 
 interface VerifierSelectionProps {
   selectedVerifiers: SelectedVerifier[];
@@ -16,13 +16,36 @@ export default function VerifierSelection({
   onOrderedChange,
 }: VerifierSelectionProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [allVerifiers, setAllVerifiers] = useState<User[]>([]);
   const [searchResults, setSearchResults] = useState<SelectedVerifier[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    const loadVerifiers = async () => {
+      const verifiers = await fetchVerifiers();
+      setAllVerifiers(verifiers);
+    };
+    loadVerifiers();
+  }, []);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
-      const results = searchUsers(query);
+      const lowercaseQuery = query.toLowerCase();
+      const results = allVerifiers
+        .filter((v) => v.name.toLowerCase().includes(lowercaseQuery) || v.id.toLowerCase().includes(lowercaseQuery))
+        .map((v) => new SelectedVerifier({
+          id: v.id,
+          name: v.name,
+          role: v.role,
+          department: v.department,
+          email: v.email,
+          nim: v.nim,
+          fakultas: v.fakultas,
+          program: v.program,
+          nip: v.nip,
+          position: v.position
+        }));
       setSearchResults(results);
       setShowResults(true);
     } else {

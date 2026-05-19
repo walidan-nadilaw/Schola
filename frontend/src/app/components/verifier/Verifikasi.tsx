@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { CheckCircle, XCircle, Eye, Search, ArrowUpDown } from 'lucide-react';
-import { Submission, SubmissionStatus, getAllSubmissions, updateSubmissionInMock } from '../../utils/submissions';
+import { useState, useEffect } from 'react';
+import { CheckCircle, XCircle, Eye, Search, ArrowUpDown, FileText, Download } from 'lucide-react';
+import { Submission, SubmissionStatus, mapBackendToSubmission } from '../../utils/submissions';
+import { api } from '../../utils/api';
 
 type SortableColumn = 'judul' | 'tanggalSubmit' | 'tanggalVerifikasi' | 'keterangan';
 
@@ -13,9 +14,39 @@ export default function Verifikasi() {
   const [verificationMessage, setVerificationMessage] = useState('');
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [verificationAction, setVerificationAction] = useState<'approve' | 'reject' | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load submissions from the centralized OOP database service
-  const submissions: Submission[] = getAllSubmissions();
+  const loadVerifications = async () => {
+    setLoading(true);
+    try {
+      const data = await api.get<any[]>('/verifications');
+      const mapped = Array.isArray(data) ? data.map((s: any) => {
+        return new Submission({
+          id: s.submission_id,
+          jenisSurat: s.letter_type,
+          keperluan: s.keperluan || 'Keperluan Akademik',
+          tanggalPengajuan: s.created_at,
+          status: SubmissionStatus.PENDING,
+          submitterName: s.submitter_name,
+          submitterNim: s.submitter_nim || '',
+          formData: {},
+          attachments: [],
+          verifiers: [],
+          role: s.verifier_role === 'verifier' ? 'verifier' : 'signer'
+        });
+      }) : [];
+      setSubmissions(mapped);
+    } catch (e) {
+      console.error('Gagal mengambil daftar verifikasi:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadVerifications();
+  }, []);
 
   const handleOpenVerificationForm = (action: 'approve' | 'reject') => {
     setVerificationAction(action);
@@ -23,22 +54,24 @@ export default function Verifikasi() {
     setShowVerificationForm(true);
   };
 
-  const handleSubmitVerification = () => {
-    if (!selectedSubmission) return;
+  const handleSubmitVerification = async () => {
+    if (!selectedSubmission || !verificationAction) return;
 
-    if (verificationAction === 'approve') {
-      updateSubmissionInMock(selectedSubmission.id, {
-        status: SubmissionStatus.APPROVED,
-        tanggalVerifikasi: new Date().toISOString().split('T')[0],
-        verifierName: 'Dr. Ahmad Santoso' // Mocking logged-in verifier
+    const status = verificationAction === 'approve' ? 'approved' : 'rejected';
+    setLoading(true);
+    try {
+      const response = await api.post<any>('/verifications/verify', {
+        submission_id: selectedSubmission.id,
+        status: status,
+        comment: status === 'approved' ? verificationMessage : '',
+        rejection_reason: status === 'rejected' ? verificationMessage : ''
       });
-      alert(`Pengajuan ${selectedSubmission.id} berhasil diverifikasi!\nPesan: ${verificationMessage || '(Tanpa pesan)'}`);
-    } else {
-      updateSubmissionInMock(selectedSubmission.id, {
-        status: SubmissionStatus.REJECTED,
-        keteranganVerifikator: verificationMessage
-      });
-      alert(`Pengajuan ${selectedSubmission.id} ditolak.\nAlasan: ${verificationMessage || '(Tanpa alasan)'}`);
+      alert(response.message || `Pengajuan ${selectedSubmission.id} berhasil diproses!`);
+      loadVerifications();
+    } catch (e: any) {
+      alert(`Gagal memproses verifikasi: ${e.message}`);
+    } finally {
+      setLoading(false);
     }
 
     setShowVerificationForm(false);
@@ -54,9 +87,22 @@ export default function Verifikasi() {
     setVerificationAction(null);
   };
 
-  const handleViewDetail = (submission: Submission) => {
-    setSelectedSubmission(submission);
-    setShowDetailModal(true);
+  const handleViewDetail = async (submission: Submission) => {
+    setLoading(true);
+    try {
+      const full = await api.get<any>(`/submissions/${encodeURIComponent(submission.id)}`);
+      if (full) {
+        setSelectedSubmission(mapBackendToSubmission(full));
+        setShowDetailModal(true);
+      } else {
+        alert("Gagal mengambil detail pengajuan.");
+      }
+    } catch (e) {
+      console.error('Gagal mengambil detail:', e);
+      alert("Gagal mengambil detail pengajuan.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSort = (column: SortableColumn) => {
@@ -151,7 +197,19 @@ export default function Verifikasi() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {sortedSubmissions.map((submission, index) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <svg className="animate-spin h-8 w-8 text-[#007bff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="text-gray-500 font-medium">Memuat antrean verifikasi...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : sortedSubmissions.map((submission, index) => (
                 <tr key={submission.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm text-gray-700">{index + 1}</td>
 
@@ -217,12 +275,16 @@ export default function Verifikasi() {
                         <button
                           onClick={() => {
                             handleViewDetail(submission);
-                            setTimeout(() => handleOpenVerificationForm('approve'), 100);
+                            setTimeout(() => handleOpenVerificationForm('approve'), 300);
                           }}
-                          className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                          title="Setujui"
+                          className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
+                            submission.role === 'verifier'
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                          }`}
+                          title={submission.role === 'verifier' ? "Setujui" : "Tanda Tangan & Setujui"}
                         >
-                          Setuju
+                          {submission.role === 'verifier' ? "Setuju" : "Tanda Tangan"}
                         </button>
                       )}
                     </div>
@@ -301,6 +363,43 @@ export default function Verifikasi() {
                     <p className="mt-1 font-medium">{selectedSubmission.keperluan}</p>
                   </div>
 
+                  {selectedSubmission.formData && Object.keys(selectedSubmission.formData).length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <p className="text-sm font-medium text-gray-700 mb-2 border-b pb-1">Detail Isi Formulir</p>
+                      {Object.entries(selectedSubmission.formData).map(([key, value]) => {
+                        const isFileArray = Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && ('path' in value[0] || 'file_path' in value[0]);
+                        
+                        return (
+                          <div key={key}>
+                            <label className="text-xs font-semibold text-gray-500">{key}</label>
+                            {isFileArray ? (
+                              <div className="space-y-1 mt-0.5">
+                                {(value as any[]).map((file, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => {
+                                      const filePath = file.path || file.file_path;
+                                      if (filePath) {
+                                        const url = filePath.startsWith('http') ? filePath : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${filePath}`;
+                                        window.open(url, '_blank');
+                                      }
+                                    }}
+                                    className="flex items-center gap-1.5 text-[#007bff] hover:underline text-xs font-semibold"
+                                  >
+                                    <FileText size={14} />
+                                    <span>{file.name || 'Dokumen'}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm font-medium text-gray-900">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {selectedSubmission.keteranganVerifikator && (
                     <div>
                       <label className="text-sm font-medium text-gray-500">Keterangan Verifikator</label>
@@ -339,13 +438,43 @@ export default function Verifikasi() {
                     </p>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Dokumen Pendukung</p>
-                    <button className="flex items-center gap-2 text-[#007bff] hover:underline text-sm">
-                      <Eye size={16} />
-                      <span>Lihat Dokumen</span>
-                    </button>
-                  </div>
+                  {selectedSubmission.attachments && selectedSubmission.attachments.length > 0 ? (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Dokumen Pendukung</p>
+                      <div className="space-y-2">
+                        {selectedSubmission.attachments.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-3">
+                              <FileText className="text-[#007bff]" size={20} />
+                              <div>
+                                <p className="font-semibold text-sm text-gray-800">{file.name}</p>
+                                <p className="text-xs text-gray-500">{file.size}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                if (file.path) {
+                                  const url = file.path.startsWith('http') ? file.path : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${file.path}`;
+                                  window.open(url, '_blank');
+                                } else {
+                                  alert(`Mengunduh dokumen: ${file.name}`);
+                                }
+                              }}
+                              className="p-1.5 text-[#007bff] hover:bg-blue-50 rounded transition-colors"
+                              title="Buka / Download Dokumen"
+                            >
+                              <Download size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Dokumen Pendukung</p>
+                      <p className="text-sm text-gray-500">Tidak ada dokumen pendukung yang dilampirkan</p>
+                    </div>
+                  )}
 
                   {/* Verification Form */}
                   {showVerificationForm && selectedSubmission.isPending() && (
@@ -371,10 +500,20 @@ export default function Verifikasi() {
                           <button
                             onClick={handleSubmitVerification}
                             disabled={verificationAction === 'reject' && !verificationMessage.trim()}
-                            className="flex-1 flex items-center justify-center gap-2 bg-[#007bff] text-white py-3 rounded-lg font-bold hover:bg-[#0056b3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white ${
+                              verificationAction === 'reject'
+                                ? 'bg-red-600 hover:bg-red-700'
+                                : selectedSubmission.role === 'verifier'
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : 'bg-indigo-600 hover:bg-indigo-700'
+                            }`}
                           >
                             <CheckCircle size={20} />
-                            Kirim
+                            {verificationAction === 'reject'
+                              ? 'Kirim Alasan Penolakan'
+                              : selectedSubmission.role === 'verifier'
+                              ? 'Kirim Verifikasi'
+                              : 'Kirim & Bubuhkan E-Signature'}
                           </button>
                           <button
                             onClick={handleCancelVerification}
@@ -387,14 +526,18 @@ export default function Verifikasi() {
                         <>
                           <button
                             onClick={() => handleOpenVerificationForm('approve')}
-                            className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-lg font-bold hover:bg-green-600 transition-colors"
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-colors text-white ${
+                              selectedSubmission.role === 'verifier'
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : 'bg-indigo-600 hover:bg-indigo-700'
+                            }`}
                           >
                             <CheckCircle size={20} />
-                            Setuju
+                            {selectedSubmission.role === 'verifier' ? 'Setujui' : 'Tanda Tangan & Setujui'}
                           </button>
                           <button
                             onClick={() => handleOpenVerificationForm('reject')}
-                            className="flex-1 flex items-center justify-center gap-2 bg-red-500 text-white py-3 rounded-lg font-bold hover:bg-red-600 transition-colors"
+                            className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors"
                           >
                             <XCircle size={20} />
                             Tolak

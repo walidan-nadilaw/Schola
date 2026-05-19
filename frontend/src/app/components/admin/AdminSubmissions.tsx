@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { FileText, Eye, Trash2, ShieldAlert, CheckCircle, XCircle, Search, RefreshCw } from 'lucide-react';
-import { mockSubmissions, SubmissionStatus } from '../../utils/submissions';
+import { useState, useEffect } from 'react';
+import { FileText, Eye, Trash2, ShieldAlert, Search } from 'lucide-react';
+import { fetchAllSubmissions, deleteSubmissionDraft, Submission, SubmissionStatus } from '../../utils/submissions';
 
 interface AdminSubmissionsProps {
   onViewDetail: (id: string) => void;
@@ -9,28 +9,33 @@ interface AdminSubmissionsProps {
 export default function AdminSubmissions({ onViewDetail }: AdminSubmissionsProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [submissions, setSubmissions] = useState(() => mockSubmissions);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleStatusChange = (id: string, newStatus: SubmissionStatus) => {
-    const target = mockSubmissions.find((s) => s.id === id);
-    if (target) {
-      target.status = newStatus;
-      if (newStatus === SubmissionStatus.APPROVED) {
-        target.tanggalVerifikasi = new Date().toISOString();
-        target.verifierName = 'Admin';
-      }
-      setSubmissions([...mockSubmissions]);
-      alert(`Status pengajuan ${id} berhasil diubah menjadi: ${newStatus}`);
+  const loadSubmissions = async () => {
+    setLoading(true);
+    try {
+      const list = await fetchAllSubmissions();
+      setSubmissions(list);
+    } catch (e) {
+      console.error('Gagal mengambil data pengajuan:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = (id: string) => {
+  useEffect(() => {
+    loadSubmissions();
+  }, []);
+
+  const handleDelete = async (id: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus pengajuan ${id}?`)) {
-      const index = mockSubmissions.findIndex((s) => s.id === id);
-      if (index >= 0) {
-        mockSubmissions.splice(index, 1);
-        setSubmissions([...mockSubmissions]);
+      try {
+        await deleteSubmissionDraft(id);
         alert('Pengajuan berhasil dihapus dari sistem!');
+        loadSubmissions();
+      } catch (e: any) {
+        alert(`Gagal menghapus pengajuan: ${e.message}`);
       }
     }
   };
@@ -93,7 +98,6 @@ export default function AdminSubmissions({ onViewDetail }: AdminSubmissionsProps
                 <th className="p-4">Jenis Surat</th>
                 <th className="p-4">Tanggal Pengajuan</th>
                 <th className="p-4">Status Saat Ini</th>
-                <th className="p-4 text-center">Tindakan Cepat (Ubah Status)</th>
                 <th className="p-4 text-right">Aksi</th>
               </tr>
             </thead>
@@ -126,31 +130,6 @@ export default function AdminSubmissions({ onViewDetail }: AdminSubmissionsProps
                     >
                       {sub.status}
                     </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleStatusChange(sub.id, SubmissionStatus.PENDING)}
-                        className="p-1 text-yellow-600 hover:bg-yellow-50 rounded"
-                        title="Set Pending"
-                      >
-                        <RefreshCw size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(sub.id, SubmissionStatus.APPROVED)}
-                        className="p-1 text-green-600 hover:bg-green-50 rounded"
-                        title="Set Approve"
-                      >
-                        <CheckCircle size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(sub.id, SubmissionStatus.REJECTED)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                        title="Set Reject"
-                      >
-                        <XCircle size={18} />
-                      </button>
-                    </div>
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex justify-end gap-2">

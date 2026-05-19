@@ -1,4 +1,4 @@
-// OOP Submission Model and Mock Database Services
+import { api } from './api';
 
 export enum SubmissionStatus {
   DRAFT = 'Draft',
@@ -19,8 +19,8 @@ export class Submission {
   submitterName: string;
   submitterNim: string;
   formData: Record<string, any>;
-  attachments: { name: string; size: string }[];
-  verifiers: { name: string; role: string; status: string; date: string }[];
+  attachments: { name: string; size: string; id?: string; path?: string }[];
+  verifiers: { name: string; role: string; status: string; date: string; comment?: string; signature_hash?: string }[];
   role?: 'verifier' | 'signer'; // For verifier context
 
   constructor(data: {
@@ -35,8 +35,8 @@ export class Submission {
     submitterName: string;
     submitterNim: string;
     formData?: Record<string, any>;
-    attachments?: { name: string; size: string }[];
-    verifiers?: { name: string; role: string; status: string; date: string }[];
+    attachments?: { name: string; size: string; id?: string; path?: string }[];
+    verifiers?: { name: string; role: string; status: string; date: string; comment?: string; signature_hash?: string }[];
     role?: 'verifier' | 'signer';
   }) {
     this.id = data.id;
@@ -81,13 +81,13 @@ export class Submission {
   getStatusColorClass(): string {
     switch (this.status) {
       case SubmissionStatus.APPROVED:
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 text-green-700 border border-green-200';
       case SubmissionStatus.REJECTED:
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-100 text-red-700 border border-red-200';
       case SubmissionStatus.DRAFT:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-100 text-gray-700 border border-gray-200';
       default:
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-yellow-100 text-yellow-700 border border-yellow-200';
     }
   }
 
@@ -145,142 +145,112 @@ export class Submission {
   }
 }
 
-// Global Centralized Mock Submissions
-export const mockSubmissions: Submission[] = [
-  new Submission({
-    id: 'SUB-2026-001',
-    jenisSurat: 'Surat Keterangan Aktif',
-    keperluan: 'Beasiswa LPDP',
-    tanggalPengajuan: '2026-04-28',
-    tanggalVerifikasi: '2026-04-29',
-    verifierName: 'Dr. Ahmad Santoso',
-    status: SubmissionStatus.APPROVED,
-    keteranganVerifikator: 'Dokumen lengkap dan memenuhi syarat',
-    submitterName: 'Naufal Akmal',
-    submitterNim: 'G6401231065',
-    formData: {
-      'Keperluan': 'Beasiswa LPDP',
-      'Semester': '6',
-      'Keterangan Tambahan': 'Untuk melanjutkan studi S2'
-    },
-    verifiers: [
-      { name: 'Dr. Ahmad Santoso', role: 'Dosen Pembimbing', status: 'Disetujui', date: '2026-04-28 10:30' },
-      { name: 'Dr. Siti Rahayu', role: 'Kepala Departemen', status: 'Disetujui', date: '2026-04-28 14:20' },
-      { name: 'Prof. Budi Wijaya', role: 'Dekan', status: 'Disetujui', date: '2026-04-28 16:45' }
-    ],
-    attachments: [
-      { name: 'KTM.pdf', size: '245 KB' },
-      { name: 'Transkrip.pdf', size: '512 KB' }
-    ],
-    role: 'verifier'
-  }),
-  new Submission({
-    id: 'SUB-2026-002',
-    jenisSurat: 'Surat Izin Penelitian',
-    keperluan: 'Penelitian Tugas Akhir di PT Indofood',
-    tanggalPengajuan: '2026-04-27',
-    status: SubmissionStatus.PENDING,
-    submitterName: 'Naufal Akmal',
-    submitterNim: 'G6401231065',
-    formData: {
-      'Judul Penelitian': 'Penelitian Tugas Akhir di PT Indofood',
-      'Lokasi Penelitian': 'Pabrik PT Indofood, Bogor',
-      'Tanggal Mulai Penelitian': '2026-05-10',
-      'Tanggal Selesai Penelitian': '2026-08-10',
-      'Deskripsi Penelitian': 'Penelitian tentang efisiensi rantai pasok agroindustri',
-      'Jenis Penelitian': 'Skripsi'
-    },
-    verifiers: [
-      { name: 'Dr. Ahmad Santoso', role: 'Dosen Pembimbing', status: 'Disetujui', date: '2026-04-28 11:00' },
-      { name: 'Dr. Siti Rahayu', role: 'Kepala Departemen', status: 'Disetujui', date: '2026-04-28 15:30' },
-      { name: 'Prof. Budi Wijaya', role: 'Dekan', status: 'Pending', date: '' }
-    ],
-    attachments: [
-      { name: 'Proposal_Penelitian.pdf', size: '1.2 MB' }
-    ],
-    role: 'signer'
-  }),
-  new Submission({
-    id: 'SUB-2026-003',
-    jenisSurat: 'Surat Cuti Akademik',
-    keperluan: 'Cuti karena alasan kesehatan',
-    tanggalPengajuan: '2026-04-26',
-    status: SubmissionStatus.PENDING,
-    submitterName: 'Naufal Akmal',
-    submitterNim: 'G6401231065',
-    formData: {
-      'Alasan Cuti': 'Kesehatan',
-      'Penjelasan Detail': 'Cuti karena memerlukan pemulihan medis pasca operasi',
-      'Durasi Cuti': '1 Semester',
-      'Tanggal Mulai Cuti': '2026-05-01',
-      'Persetujuan Orang Tua/Wali': 'Sudah'
-    },
-    verifiers: [
-      { name: 'Dr. Ahmad Santoso', role: 'Dosen Akademik', status: 'Pending', date: '' }
-    ],
-    attachments: [
-      { name: 'Surat_Keterangan_Dokter.pdf', size: '890 KB' }
-    ],
-    role: 'verifier'
-  }),
-  new Submission({
-    id: 'SUB-2026-004',
-    jenisSurat: 'Surat Keterangan Aktif',
-    keperluan: 'Pembuatan NPWP',
-    tanggalPengajuan: '2026-04-25',
-    tanggalVerifikasi: '2026-04-26',
-    verifierName: 'Prof. Budi Wijaya',
-    status: SubmissionStatus.REJECTED,
-    keteranganVerifikator: 'Dokumen pendukung tidak lengkap, harap melengkapi KTM',
-    submitterName: 'Naufal Akmal',
-    submitterNim: 'G6401231065',
-    formData: {
-      'Keperluan': 'Pembuatan NPWP',
-      'Semester': '6',
-      'Keterangan Tambahan': 'NPWP diperlukan untuk magang mandiri'
-    },
-    verifiers: [
-      { name: 'Dr. Ahmad Santoso', role: 'Dosen Pembimbing', status: 'Disetujui', date: '2026-04-25 09:30' },
-      { name: 'Prof. Budi Wijaya', role: 'Dekan', status: 'Ditolak', date: '2026-04-26 14:00' }
-    ],
-    role: 'signer'
-  }),
-  new Submission({
-    id: 'SUB-2026-005',
-    jenisSurat: 'Surat Rekomendasi',
-    keperluan: 'Magang di Kementerian Pertanian',
-    tanggalPengajuan: '2026-04-24',
-    status: SubmissionStatus.DRAFT,
-    submitterName: 'Naufal Akmal',
-    submitterNim: 'G6401231065',
-    formData: {
-      'Instansi Tujuan': 'Kementerian Pertanian RI',
-      'Posisi Magang': 'Analyst Data Pertanian',
-      'Durasi Magang': '3 Bulan'
-    },
-    role: 'verifier'
-  })
-];
-
-// Helper methods to access mock database services
-export const getAllSubmissions = (): Submission[] => {
-  return mockSubmissions;
+// Helper: Map status from backend lowercase to SubmissionStatus enum
+export const mapStatusFromBackend = (status: string): SubmissionStatus => {
+  const s = status.toLowerCase();
+  if (s === 'draft') return SubmissionStatus.DRAFT;
+  if (s === 'approved') return SubmissionStatus.APPROVED;
+  if (s === 'rejected') return SubmissionStatus.REJECTED;
+  return SubmissionStatus.PENDING; // 'pending'
 };
 
-export const getSubmissionById = (id: string): Submission | undefined => {
-  return mockSubmissions.find((sub) => sub.id === id);
+// Helper: Map backend JSON to frontend Submission object
+export const mapBackendToSubmission = (s: any): Submission => {
+  const attachments = (s.attachments || []).map((att: any) => ({
+    name: att.file_name,
+    size: `${(att.file_size / 1024).toFixed(0)} KB`,
+    id: att.id,
+    path: att.file_path
+  }));
+
+  const verifiers = (s.verifiers || []).map((v: any) => ({
+    name: v.verifier_name,
+    role: v.verifier_role || 'Verifikator',
+    status: v.status === 'approved' ? 'Disetujui' : v.status === 'rejected' ? 'Ditolak' : v.status === 'cancelled' ? 'Dibatalkan' : 'Pending',
+    date: v.verified_at ? new Date(v.verified_at).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : '',
+    comment: v.comment,
+    signature_hash: v.signature_hash
+  }));
+
+  const keperluanKey = Object.keys(s.form_data || {}).find(k => k === 'Judul' || k === 'field-judul' || k.toLowerCase() === 'judul' || k.toLowerCase().includes('judul') || k.toLowerCase().includes('keperluan')) || 'Judul';
+  const keperluan = s.form_data?.[keperluanKey] || s.form_data?.['Judul'] || s.form_data?.['field-judul'] || s.form_data?.['Keperluan'] || 'Keperluan Akademik';
+
+  return new Submission({
+    id: s.id,
+    jenisSurat: s.letter_type,
+    keperluan: keperluan,
+    tanggalPengajuan: s.submitted_at || s.created_at,
+    tanggalVerifikasi: s.verified_at,
+    verifierName: s.verifiers && s.verifiers.length > 0 ? s.verifiers[s.verifiers.length - 1].verifier_name : undefined,
+    status: mapStatusFromBackend(s.status),
+    keteranganVerifikator: s.rejection_reason || undefined,
+    submitterName: s.submitter?.name || 'Mahasiswa',
+    submitterNim: s.submitter?.nim || 'NIM',
+    formData: s.form_data || {},
+    attachments: attachments,
+    verifiers: verifiers
+  });
 };
 
-export const addSubmission = (sub: Submission): void => {
-  mockSubmissions.push(sub);
-};
-
-export const updateSubmissionInMock = (id: string, updates: Partial<Submission>): void => {
-  const idx = mockSubmissions.findIndex((s) => s.id === id);
-  if (idx >= 0) {
-    mockSubmissions[idx] = new Submission({
-      ...mockSubmissions[idx],
-      ...updates
+// Helper methods to access FastAPI backend
+export const fetchAllSubmissions = async (statusFilter?: string): Promise<Submission[]> => {
+  try {
+    const res = await api.get<any>('/submissions', {
+      params: statusFilter ? { status_filter: statusFilter } : undefined
     });
+    const list = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
+    return list.map(mapBackendToSubmission);
+  } catch (e) {
+    console.error('Gagal mengambil daftar pengajuan:', e);
+    return [];
   }
+};
+
+export const fetchSubmissionById = async (id: string): Promise<Submission | null> => {
+  try {
+    const data = await api.get<any>(`/submissions/${encodeURIComponent(id)}`);
+    return mapBackendToSubmission(data);
+  } catch (e) {
+    console.error(`Gagal mengambil detail pengajuan ${id}:`, e);
+    return null;
+  }
+};
+
+export const createSubmission = async (templateId: string, formData: Record<string, any>): Promise<Submission> => {
+  const data = await api.post<any>('/submissions', {
+    template_id: templateId,
+    form_data: formData
+  });
+  return mapBackendToSubmission(data);
+};
+
+export const updateSubmissionDraft = async (id: string, formData: Record<string, any>, isOrdered: boolean): Promise<Submission> => {
+  const data = await api.put<any>(`/submissions/${encodeURIComponent(id)}`, {
+    form_data: formData,
+    is_ordered_verification: isOrdered
+  });
+  return mapBackendToSubmission(data);
+};
+
+export const deleteSubmissionDraft = async (id: string): Promise<void> => {
+  await api.delete(`/submissions/${encodeURIComponent(id)}`);
+};
+
+export const sendFinalizeSubmission = async (id: string, verifiersOrder: string[]): Promise<Submission> => {
+  const data = await api.post<any>(`/submissions/${encodeURIComponent(id)}/finalize`, verifiersOrder);
+  return mapBackendToSubmission(data);
+};
+
+export const uploadAttachmentForSubmission = async (submissionId: string, file: File): Promise<any> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post(`/files/upload`, formData, {
+    params: { submission_id: submissionId }
+  });
 };

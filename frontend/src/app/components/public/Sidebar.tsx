@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, FileText, CheckCircle, MessageCircle, Settings, ChevronLeft, ChevronRight, ChevronDown, BookOpen } from 'lucide-react';
+import { Home, FileText, CheckCircle, MessageCircle, Settings, ChevronLeft, ChevronRight, ChevronDown, BookOpen, Users } from 'lucide-react';
 import logoSchola from "../../../imports/LandingPage/fb4b976284f353796ffb0e836979232591a38ec0.png";
 
 interface SidebarProps {
@@ -25,19 +25,14 @@ export default function Sidebar({ activeSection, onSectionChange, onLogoClick, o
   // Filter main menu items based on role
   const menuItems: MenuItem[] = [
     { id: 'beranda', label: 'Beranda', icon: Home },
-    // Only students can create/view their own submissions
-    ...(userRole === 'mahasiswa' ? [{
-      id: 'pengajuan', label: 'Pengajuan', icon: FileText, submenu: [
-        { id: 'ajuan', label: 'Ajuan Surat' },
-        { id: 'diajukan', label: 'Riwayat Pengajuan' }
-      ]
-    }] : []),
-    // Only verifiers can verify submissions
-    ...(userRole === 'verifikator' ? [
-      { id: 'verifikasi', label: 'Verifikasi', icon: CheckCircle }
-    ] : []),
-    // Hide Panduan and Chatbot from admin
     ...(userRole !== 'admin' ? [
+      {
+        id: 'pengajuan', label: 'Pengajuan', icon: FileText, submenu: [
+          { id: 'ajuan', label: 'Ajuan Surat' },
+          { id: 'diajukan', label: 'Riwayat Pengajuan' }
+        ]
+      },
+      { id: 'verifikasi', label: 'Verifikasi', icon: CheckCircle },
       { id: 'panduan', label: 'Panduan', icon: BookOpen },
       { id: 'chatbot', label: 'Chatbot', icon: MessageCircle }
     ] : []),
@@ -45,10 +40,11 @@ export default function Sidebar({ activeSection, onSectionChange, onLogoClick, o
 
   // Admin CRUD tabs - strictly only shown to admins
   const adminMenuItems = userRole === 'admin' ? [
-    { id: 'admin-forms', label: 'Manajemen Form', icon: Settings },
-    { id: 'admin-submissions', label: 'Manajemen Pengajuan', icon: FileText },
-    { id: 'admin-panduan', label: 'Manajemen Panduan', icon: BookOpen },
-    { id: 'admin-faq', label: 'Manajemen FAQ', icon: MessageCircle },
+    { id: 'admin/forms', label: 'Form', icon: Settings },
+    { id: 'admin/submissions', label: 'Pengajuan', icon: FileText },
+    { id: 'admin/panduan', label: 'Panduan', icon: BookOpen },
+    { id: 'admin/faq', label: 'FAQ', icon: MessageCircle },
+    { id: 'admin/users', label: 'User', icon: Users },
   ] : [];
 
   const toggleMenu = (menuId: string) => {

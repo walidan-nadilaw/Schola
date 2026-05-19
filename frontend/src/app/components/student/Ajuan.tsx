@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FileText, Upload, X, ChevronLeft } from 'lucide-react';
 import StepTimeline from '../public/StepTimeline';
 import DynamicFormRenderer from './DynamicFormRenderer';
 import VerifierSelection from './VerifierSelection';
-import { getAllFormTemplates, getFormTemplateByLetterType, saveDraft, FormDraft } from '../../utils/formTemplates';
+import { fetchAllFormTemplates, FormTemplate } from '../../utils/formTemplates';
 import { SelectedVerifier } from '../../utils/users';
+import {
+  createSubmission,
+  updateSubmissionDraft,
+  sendFinalizeSubmission,
+  uploadAttachmentForSubmission,
+  fetchSubmissionById
+} from '../../utils/submissions';
 
 interface AjuanProps {
   preSelectedLetter?: string;
@@ -13,48 +21,78 @@ interface AjuanProps {
 }
 
 export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackToList }: AjuanProps) {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedLetter, setSelectedLetter] = useState('');
   const [selectedVerifiers, setSelectedVerifiers] = useState<SelectedVerifier[]>([]);
   const [isOrderedVerification, setIsOrderedVerification] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [files, setFiles] = useState<File[]>([]);
-  const [draftId] = useState(`draft-${Date.now()}`);
+  const [activeSubmissionId, setActiveSubmissionId] = useState<string | null>(null);
+  const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const steps = ['Pilih Jenis Surat', 'Isi Form & Lampiran', 'Pilih Verifikator', 'Review & Submit'];
-  const formTemplates = getAllFormTemplates();
 
   useEffect(() => {
-    // If editing existing submission, load the data
-    if (editingSubmissionId) {
-      // Mock data - in real app, fetch by editingSubmissionId
-      setSelectedLetter('Surat Keterangan Aktif');
-      setSelectedVerifiers([
-        {
-          id: 'U001',
-          name: 'Dr. Ahmad Santoso',
-          role: 'Dosen',
-          department: 'Fakultas Pertanian',
-          email: 'ahmad.santoso@ipb.ac.id',
-          order: 1
-        }
-      ]);
-      setIsOrderedVerification(true);
-      setFormData({
-        'field-1': 'Beasiswa LPDP',
-        'field-2': '6',
-        'field-3': 'Untuk melanjutkan studi S2'
-      });
-      setCurrentStep(2); // Start at form step for editing
-    } else if (preSelectedLetter) {
-      setSelectedLetter(preSelectedLetter);
-      if (getFormTemplateByLetterType(preSelectedLetter)) {
-        setCurrentStep(2); // Go to form filling
+    const loadTemplates = async () => {
+      setLoading(true);
+      try {
+        const templates = await fetchAllFormTemplates();
+        setFormTemplates(templates);
+      } catch (e) {
+        console.error('Error fetching templates:', e);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [preSelectedLetter, editingSubmissionId]);
+    };
+    loadTemplates();
+  }, []);
 
-  const currentTemplate = getFormTemplateByLetterType(selectedLetter);
+  useEffect(() => {
+    const loadEditingData = async () => {
+      if (editingSubmissionId) {
+        setLoading(true);
+        setActiveSubmissionId(editingSubmissionId);
+        try {
+          const sub = await fetchSubmissionById(editingSubmissionId);
+          if (sub) {
+            setSelectedLetter(sub.jenisSurat);
+            setFormData(sub.formData);
+            
+            // Map verifiers back into SelectedVerifier objects
+            const verifiersMapped = sub.verifiers.map((v, i) => new SelectedVerifier({
+              id: v.name, // Using name as ID mapping key or index if real ID isn't directly matching
+              name: v.name,
+              role: v.role,
+              department: 'IPB University',
+              email: `${v.name.toLowerCase().replace(/[^a-z]/g, '')}@ipb.ac.id`,
+              order: i + 1,
+              verifierRole: v.role.toLowerCase().includes('tangan') ? 'penandatangan' : 'verifikator'
+            }));
+            setSelectedVerifiers(verifiersMapped);
+            setIsOrderedVerification(true);
+            setCurrentStep(2);
+          }
+        } catch (e) {
+          console.error('Gagal mengambil data pengajuan:', e);
+        } finally {
+          setLoading(false);
+        }
+      } else if (preSelectedLetter) {
+        setSelectedLetter(preSelectedLetter);
+        const template = formTemplates.find(t => t.letterType === preSelectedLetter);
+        if (template) {
+          setCurrentStep(2);
+        }
+      }
+    };
+    if (formTemplates.length > 0) {
+      loadEditingData();
+    }
+  }, [preSelectedLetter, editingSubmissionId, formTemplates]);
+
+  const currentTemplate = formTemplates.find((t) => t.letterType === selectedLetter);
 
   const handleFieldChange = (fieldId: string, value: any) => {
     setFormData((prev) => ({
@@ -73,48 +111,103 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSaveDraft = () => {
-    saveDraft(new FormDraft({
-      id: draftId,
-      templateId: currentTemplate?.id || '',
-      letterType: selectedLetter,
-      verifiers: selectedVerifiers,
-      isOrderedVerification,
-      formData,
-      attachments: files,
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
-    alert('Draft berhasil disimpan!');
+  const saveSubmissionState = async (): Promise<string | null> => {
+    if (!currentTemplate) return null;
+    setLoading(true);
+    try {
+      let submissionId = activeSubmissionId;
+      
+      // Step 1: Create clean formData without dynamic File objects for initial draft saving
+      const cleanFormData: Record<string, any> = {};
+      for (const key of Object.keys(formData)) {
+        const val = formData[key];
+        if (Array.isArray(val) && val.length > 0 && val[0] instanceof File) {
+          cleanFormData[key] = [];
+        } else {
+          cleanFormData[key] = val;
+        }
+      }
+
+      if (submissionId) {
+        // Update existing draft with clean form data
+        const sub = await updateSubmissionDraft(submissionId, cleanFormData, isOrderedVerification);
+        submissionId = sub.id;
+      } else {
+        // Create new draft
+        const sub = await createSubmission(currentTemplate.id, cleanFormData);
+        submissionId = sub.id;
+        setActiveSubmissionId(submissionId);
+      }
+
+      // Step 2: Scan and upload files inside dynamic template fields
+      const finalFormData = { ...formData };
+      let hasDynamicUploads = false;
+
+      for (const field of currentTemplate.fields) {
+        if (field.type === 'file_upload') {
+          const val = formData[field.id];
+          if (Array.isArray(val) && val.length > 0 && val[0] instanceof File) {
+            hasDynamicUploads = true;
+            const uploadedMeta = [];
+            for (const fileObj of val) {
+              const res = await uploadAttachmentForSubmission(submissionId, fileObj);
+              uploadedMeta.push({
+                id: res.id,
+                name: fileObj.name,
+                path: res.file_path || res.path
+              });
+            }
+            finalFormData[field.id] = uploadedMeta;
+          }
+        }
+      }
+
+      // Step 3: If we uploaded any dynamic files, save the updated serialized formData to backend
+      if (hasDynamicUploads) {
+        await updateSubmissionDraft(submissionId, finalFormData, isOrderedVerification);
+        setFormData(finalFormData);
+      }
+
+      return submissionId;
+    } catch (e: any) {
+      alert(`Gagal menyimpan: ${e.message}`);
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFinalize = () => {
-    saveDraft(new FormDraft({
-      id: editingSubmissionId || draftId,
-      templateId: currentTemplate?.id || '',
-      letterType: selectedLetter,
-      verifiers: selectedVerifiers,
-      isOrderedVerification,
-      formData,
-      attachments: files,
-      status: 'finalized',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
+  const handleSaveDraft = async () => {
+    const subId = await saveSubmissionState();
+    if (subId) {
+      alert(`Draft pengajuan berhasil disimpan ke database! (ID: ${subId})`);
+    }
+  };
 
-    if (editingSubmissionId) {
-      alert('Perubahan berhasil disimpan dan dikirim ke verifikator!');
-      onBackToList?.();
-    } else {
+  const handleFinalize = async () => {
+    // 1. Save state first to ensure latest fields and files are recorded
+    const subId = await saveSubmissionState();
+    if (!subId) {
+      alert('Gagal memproses pengajuan. Mohon lengkapi data dengan benar.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Get verifier order ids
+      const verifiersOrder = selectedVerifiers.map((v) => v.id);
+      await sendFinalizeSubmission(subId, verifiersOrder);
+
       alert('Pengajuan berhasil difinalisasi dan dikirim ke verifikator!');
-      // Reset form
-      setCurrentStep(1);
-      setSelectedLetter('');
-      setSelectedVerifiers([]);
-      setIsOrderedVerification(false);
-      setFormData({});
-      setFiles([]);
+      if (onBackToList) {
+        onBackToList();
+      } else {
+        navigate('/diajukan');
+      }
+    } catch (e: any) {
+      alert(`Gagal finalisasi: ${e.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -218,45 +311,7 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
               onChange={handleFieldChange}
             />
 
-            <div className="border-t pt-6 mt-8">
-              <label className="block font-medium mb-2 text-lg">Lampiran Dokumen</label>
-              <p className="text-sm text-gray-600 mb-4">Upload dokumen pendukung (opsional)</p>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
-                <label className="cursor-pointer">
-                  <Upload className="mx-auto mb-3 text-gray-400" size={40} />
-                  <p className="text-gray-600 mb-1">Klik untuk upload atau drag & drop</p>
-                  <p className="text-sm text-gray-500">PDF, DOC, DOCX, JPG, PNG (Maks. 5MB per file)</p>
-                  <input
-                    type="file"
-                    onChange={(e) => handleFileAdd(e.target.files)}
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    multiple
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {files.length > 0 && (
-                <div className="space-y-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <FileText className="text-[#007bff]" size={24} />
-                        <span className="font-medium">{file.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleFileRemove(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X size={20} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
             <div className="bg-[#fcdde2] rounded-lg p-4 flex gap-3 mt-6">
               <div className="text-[#830000] text-2xl font-bold">!</div>
@@ -387,26 +442,12 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
                   <p className="text-sm text-gray-600">{field.label}</p>
                   <p className="font-medium mt-1">
                     {Array.isArray(formData[field.id])
-                      ? formData[field.id].join(', ')
+                      ? formData[field.id].map((item: any) => typeof item === 'object' ? (item.name || item.file_name) : String(item)).join(', ')
                       : formData[field.id] || '-'}
                   </p>
                 </div>
               ))}
             </div>
-
-            {files.length > 0 && (
-              <div className="border rounded-lg p-6">
-                <h3 className="font-bold text-lg mb-4">Dokumen Lampiran</h3>
-                <div className="space-y-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                      <FileText className="text-[#007bff]" size={24} />
-                      <span>{file.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
               <div className="text-yellow-700 text-2xl font-bold">⚠</div>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Download, Eye, Edit, FileText, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
-import { Submission, SubmissionStatus, getAllSubmissions } from '../../utils/submissions';
+import { Submission, SubmissionStatus, fetchAllSubmissions } from '../../utils/submissions';
 
 interface DiajukanProps {
   onNewSubmission?: () => void;
@@ -16,9 +16,24 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<SortableColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load submissions from OOP database service
-  const submissions: Submission[] = getAllSubmissions();
+  // Load submissions from backend API
+  useEffect(() => {
+    const loadSubmissions = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchAllSubmissions();
+        setSubmissions(data);
+      } catch (e) {
+        console.error('Error fetching submissions:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSubmissions();
+  }, []);
 
   const handleDownload = (submission: Submission, verified: boolean) => {
     if (verified) {
@@ -182,7 +197,19 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {paginatedSubmissions.map((submission, index) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <svg className="animate-spin h-8 w-8 text-[#007bff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="text-gray-500 font-medium">Memuat data pengajuan resmi...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedSubmissions.map((submission, index) => (
                 <tr key={submission.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm text-gray-700">{startIndex + index + 1}</td>
 
