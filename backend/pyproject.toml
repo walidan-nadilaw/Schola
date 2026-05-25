@@ -18,6 +18,9 @@ passlib = "1.7.4"
 PyJWT = "2.10.1"
 httpx = "0.28.1"
 uvicorn = { version = "0.40.0", extras = ["standard"] }
+asyncpg = "^0.31.0"
+fastapi-limiter = "^0.2.0"
+alembic = "^1.13.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "8.4.2"

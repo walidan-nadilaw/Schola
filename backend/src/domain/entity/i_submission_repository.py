@@ -1,0 +1,32 @@
+"""Abstract interface for the Submission repository."""
+
+from abc import abstractmethod
+from collections.abc import Iterable
+from uuid import UUID
+
+from src.domain.entity.submission import Submission, SubmissionStatus
+from src.infrastructure.repositories.repository import IRepository
+
+
+class ISubmissionRepository(IRepository[Submission, str]):
+    """Port for submission persistence with additional query methods."""
+
+    @abstractmethod
+    async def update(self, entity: Submission) -> Submission:
+        """Persist changes to an existing submission."""
+        pass
+
+    @abstractmethod
+    async def find_by_submitter_id(self, submitter_id: UUID) -> Iterable[Submission]:
+        """Find all submissions belonging to a specific user."""
+        pass
+
+    @abstractmethod
+    async def find_by_status(self, status: SubmissionStatus) -> Iterable[Submission]:
+        """Find all submissions with a given status."""
+        pass
+
+    @abstractmethod
+    async def find_by_letter_type(self, letter_type: str) -> Iterable[Submission]:
+        """Find all submissions of a specific letter type."""
+        pass
