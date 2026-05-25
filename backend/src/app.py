@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from src.api.error_handler import add_global_exception_handlers
 from src.features.auth.router import router as auth_router
 from src.features.users.router import router as users_router
+from src.features.templates.router import router as templates_router
+from src.features.submissions.router import router as submissions_router
 
 app = FastAPI(
     title="Schola API",
@@ -16,6 +18,8 @@ add_global_exception_handlers(app)
 # Feature routers
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(templates_router)
+app.include_router(submissions_router)
 
 
 @app.get("/")

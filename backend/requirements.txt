@@ -46,3 +46,6 @@ psycopg2-binary==2.9.11
 passlib==1.7.4
 PyJWT==2.10.1
 pytest==8.4.2
+alembic==1.16.2
+asyncpg==0.31.0
+argon2-cffi==25.1.0
