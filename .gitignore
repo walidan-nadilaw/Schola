@@ -294,4 +294,7 @@ backend/__pycache__/
 .env.local
 *.env
 
+# ancient
+backend/.ancient
+
 # End of https://www.toptal.com/developers/gitignore/api/react,python,flask

@@ -1,23 +1,20 @@
 from datetime import datetime, timezone
-
-from sqlalchemy import Boolean, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
-
+from sqlalchemy import Column, DateTime, Text
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 from ..database import Base
+
+
+def _now():
+    """Timezone-aware UTC timestamp (replaces deprecated datetime.utcnow)."""
+    return datetime.now(timezone.utc)
 
 
 class FAQ(Base):
     __tablename__ = "faqs"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    pertanyaan: Mapped[str] = mapped_column(String, nullable=False)
-    jawaban: Mapped[str] = mapped_column(String, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
-    status_publish: Mapped[bool] = mapped_column(Boolean, default=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-    )
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question = Column(Text, nullable=False)
+    answer = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_now)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
