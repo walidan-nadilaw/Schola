@@ -15,7 +15,9 @@ class Settings:
     def __init__(self) -> None:
         self.APP_ENV = os.getenv("APP_ENV", "development")
         self.DB_HOST = self._get_required_env_var("DB_HOST")
-        self.DB_PORT = self._get_required_int_env_var("DB_PORT")
+        self.DB_PORT = self._get_required_int_env_var(
+            "DB_PORT", min_value=1, max_value=65535
+        )
         self.DB_USER = self._get_required_env_var("DB_USER")
         self.DB_PASSWORD = self._get_required_env_var("DB_PASSWORD")
         self.DB_NAME = self._get_required_env_var("DB_NAME")
@@ -64,19 +66,19 @@ class Settings:
         value_str = Settings._get_required_env_var(var_name)
         try:
             value = int(value_str)
-            if min_value is not None and value < min_value:
-                raise ValueError(
-                    f"Environment variable '{var_name}' must be at least {min_value}, but got {value}."
-                )
-            if max_value is not None and value > max_value:
-                raise ValueError(
-                    f"Environment variable '{var_name}' must be at most {max_value}, but got {value}."
-                )
-            return value
         except ValueError:
             raise ValueError(
                 f"Environment variable '{var_name}' must be an integer, but got '{value_str}'."
             )
+        if min_value is not None and value < min_value:
+            raise ValueError(
+                f"Environment variable '{var_name}' must be at least {min_value}, but got {value}."
+            )
+        if max_value is not None and value > max_value:
+            raise ValueError(
+                f"Environment variable '{var_name}' must be at most {max_value}, but got {value}."
+            )
+        return value
 
     @property
     def DATABASE_URL(self) -> str:
