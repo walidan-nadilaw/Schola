@@ -7,8 +7,8 @@ WORKDIR /install
 
 # Install build tools needed for some packages (e.g. psycopg2-binary)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        gcc \
-        libpq-dev \
+    gcc \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -22,7 +22,7 @@ FROM python:3.12-slim AS runtime
 
 # Install libpq runtime library (needed by psycopg2-binary / asyncpg at runtime)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq5 \
+    libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
