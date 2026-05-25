@@ -22,6 +22,8 @@ build/
 develop-eggs/
 dist/
 downloads/
+.claude/
+CLAUDE.md
 eggs/
 .eggs/
 lib/
