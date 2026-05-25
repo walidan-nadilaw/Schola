@@ -25,4 +25,3 @@ app.include_router(submissions_router)
 @app.get("/")
 async def root():
     return {"message": "Welcome to the Schola API"}
-

@@ -5,8 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-
 # -- Requests --
+
 
 class CreateSubmissionRequest(BaseModel):
     template_id: str
@@ -18,6 +18,7 @@ class UpdateSubmissionRequest(BaseModel):
 
 
 # -- Responses --
+
 
 class SubmissionResponse(BaseModel):
     id: str

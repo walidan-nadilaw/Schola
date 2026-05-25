@@ -52,6 +52,7 @@ async def _override_db() -> AsyncGenerator[AsyncSession, None]:
     async with TestSessionLocal() as session:
         yield session
 
+
 app.dependency_overrides[get_async_db_session] = _override_db
 
 

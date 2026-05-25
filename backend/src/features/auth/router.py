@@ -42,7 +42,10 @@ def _to_user_response(user: User) -> UserResponse:
     response_model=HTTPDataResponse[UserResponse],
     status_code=status.HTTP_201_CREATED,
     responses={
-        400: {"model": HTTPErrorResponse, "description": "Domain email tidak diizinkan"},
+        400: {
+            "model": HTTPErrorResponse,
+            "description": "Domain email tidak diizinkan",
+        },
         409: {"model": HTTPErrorResponse, "description": "Email sudah terdaftar"},
         422: {"model": HTTPErrorResponse, "description": "Validasi input gagal"},
     },
@@ -138,4 +141,3 @@ async def get_me(current_user: User = Depends(get_current_user)):
         data=_to_user_response(current_user),
         message="Data user berhasil diambil",
     )
-

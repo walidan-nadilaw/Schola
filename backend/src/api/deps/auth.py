@@ -45,4 +45,3 @@ def require_role(*roles: UserRole) -> Callable:
         return user
 
     return _guard
-

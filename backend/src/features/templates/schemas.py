@@ -5,8 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-
 # -- Requests --
+
 
 class CreateTemplateRequest(BaseModel):
     letter_type: str
@@ -22,6 +22,7 @@ class UpdateTemplateRequest(BaseModel):
 
 
 # -- Responses --
+
 
 class TemplateResponse(BaseModel):
     id: str

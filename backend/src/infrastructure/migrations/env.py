@@ -10,10 +10,13 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Add project root to path so we can import src.* modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+)
 
 from src.core.config import settings
 from src.infrastructure.db import Base
+
 # Import all models so they are registered on Base.metadata
 import src.infrastructure.models  # noqa
 

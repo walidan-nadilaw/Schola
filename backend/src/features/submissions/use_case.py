@@ -15,6 +15,7 @@ def _generate_submission_id(letter_type: str) -> str:
     prefix = "".join(w[0] for w in letter_type.split()[:3]).upper()
     year = datetime.now().year
     import random
+
     seq = random.randint(1, 9999)
     return f"{prefix}/{year}/{seq:04d}"
 

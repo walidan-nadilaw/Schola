@@ -38,18 +38,14 @@ class FAQRepository(IFAQRepository):
         return [row.to_domain() for row in rows]
 
     async def findById(self, id: UUID) -> FAQ | None:
-        result = await self.db.execute(
-            select(FAQTable).where(FAQTable.id == id)
-        )
+        result = await self.db.execute(select(FAQTable).where(FAQTable.id == id))
         row = result.scalars().first()
         if row is None:
             return None
         return row.to_domain()
 
     async def existsById(self, id: UUID) -> bool:
-        result = await self.db.execute(
-            select(FAQTable.id).where(FAQTable.id == id)
-        )
+        result = await self.db.execute(select(FAQTable.id).where(FAQTable.id == id))
         return result.scalar_one_or_none() is not None
 
     async def findAll(self) -> Iterable[FAQ]:
@@ -82,9 +78,7 @@ class FAQRepository(IFAQRepository):
         ids_list = list(ids)
         if not ids_list:
             return
-        await self.db.execute(
-            delete(FAQTable).where(FAQTable.id.in_(ids_list))
-        )
+        await self.db.execute(delete(FAQTable).where(FAQTable.id.in_(ids_list)))
         await self.db.commit()
 
     async def deleteAll(self, entities: Iterable[FAQ] | None = None) -> None:

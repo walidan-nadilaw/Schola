@@ -6,8 +6,8 @@ from pydantic import BaseModel, EmailStr
 
 from src.domain.entity.user import UserRole
 
-
 # -- Requests --
+
 
 class CreateUserRequest(BaseModel):
     email: EmailStr
@@ -28,6 +28,7 @@ class UpdateUserRequest(BaseModel):
 
 
 # -- Responses --
+
 
 class UserResponse(BaseModel):
     id: str

@@ -23,29 +23,59 @@ if TYPE_CHECKING:
 class Submission(Base):
     __tablename__ = "submissions"
 
-    id: Mapped[str] = mapped_column(String(50), primary_key=True)          # e.g. SKA/2026/0001
-    template_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("form_templates.id", ondelete="RESTRICT"), nullable=False, index=True)
-    submitter_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(50), primary_key=True)  # e.g. SKA/2026/0001
+    template_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("form_templates.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    submitter_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     letter_type: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     form_data: Mapped[dict | list] = mapped_column(JSONB, nullable=False)
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft", index=True)
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="draft", index=True
+    )
     is_ordered_verification: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
-    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    rejected_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rejected_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    rejected_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now, onupdate=now
+    )
 
-    template: Mapped["FormTemplate"] = relationship("FormTemplate", back_populates="submissions")
-    submitter: Mapped["User"] = relationship("User", back_populates="submissions", foreign_keys=[submitter_id])
-    verifiers: Mapped[List["SubmissionVerifier"]] = relationship("SubmissionVerifier", back_populates="submission", cascade="all, delete-orphan")
-    attachments: Mapped[List["Attachment"]] = relationship("Attachment", back_populates="submission", cascade="all, delete-orphan")
+    template: Mapped["FormTemplate"] = relationship(
+        "FormTemplate", back_populates="submissions"
+    )
+    submitter: Mapped["User"] = relationship(
+        "User", back_populates="submissions", foreign_keys=[submitter_id]
+    )
+    verifiers: Mapped[List["SubmissionVerifier"]] = relationship(
+        "SubmissionVerifier", back_populates="submission", cascade="all, delete-orphan"
+    )
+    attachments: Mapped[List["Attachment"]] = relationship(
+        "Attachment", back_populates="submission", cascade="all, delete-orphan"
+    )
 
     def to_domain(self) -> DomainSubmission:
         """Convert to domain entity."""
@@ -92,24 +122,48 @@ class Submission(Base):
 class SubmissionVerifier(Base):
     __tablename__ = "submission_verifiers"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    submission_id: Mapped[str] = mapped_column(String(50), ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False, index=True)
-    verifier_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    submission_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("submissions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    verifier_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     verifier_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    verifier_role: Mapped[str | None] = mapped_column(String(50), nullable=True)   # "verifier" | "signer"
+    verifier_role: Mapped[str | None] = mapped_column(
+        String(50), nullable=True
+    )  # "verifier" | "signer"
 
-    status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(50), default="pending", nullable=False, index=True
+    )
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
-    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     signature_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    signature_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    signature_timestamp: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now, onupdate=now
+    )
 
-    submission: Mapped["Submission"] = relationship("Submission", back_populates="verifiers")
+    submission: Mapped["Submission"] = relationship(
+        "Submission", back_populates="verifiers"
+    )
     verifier: Mapped["User"] = relationship("User", back_populates="verifications")
 
     @property
@@ -124,7 +178,9 @@ class SubmissionVerifier(Base):
             verifier_id=self.verifier_id,
             status=VerifierStatus(self.status),
             verifier_order=self.verifier_order,
-            verifier_role=VerifierRole(self.verifier_role) if self.verifier_role else None,
+            verifier_role=(
+                VerifierRole(self.verifier_role) if self.verifier_role else None
+            ),
             comment=self.comment,
             verified_at=self.verified_at,
             signature_hash=self.signature_hash,
@@ -155,8 +211,15 @@ class SubmissionVerifier(Base):
 class Attachment(Base):
     __tablename__ = "attachments"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    submission_id: Mapped[str | None] = mapped_column(String(50), ForeignKey("submissions.id", ondelete="CASCADE"), nullable=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    submission_id: Mapped[str | None] = mapped_column(
+        String(50),
+        ForeignKey("submissions.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
 
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -164,10 +227,14 @@ class Attachment(Base):
     file_path: Mapped[str] = mapped_column(Text, nullable=False)
     file_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    uploaded_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    uploaded_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
-    submission: Mapped["Submission"] = relationship("Submission", back_populates="attachments")
+    submission: Mapped["Submission"] = relationship(
+        "Submission", back_populates="attachments"
+    )
 
     def to_domain(self) -> DomainAttachment:
         """Convert to domain entity."""

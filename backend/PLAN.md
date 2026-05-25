@@ -7,68 +7,49 @@ Features to implement, derived from the [.ancient](file:///c:/Users/LENOVO/Docum
 ## ✅ Completed
 
 ### 1. Auth (`src/features/auth/`)
+
 - `POST /auth/register` — Register new user (IPB email only)
 - `POST /auth/login` — Login, receive JWT
 - `POST /auth/logout` — Stateless logout
 - `GET  /auth/me` — Get current user profile
 
+### 2. Users Management (`src/features/users/`)
+
+Admin-only CRUD for managing users.
+
+- `GET /users` — List/search users (paginated, filterable by role/department)
+- `GET /users/{id}` — Get single user profile
+- `POST /users` — Create user (admin bypass, email_verified=true)
+- `PUT /users/{id}` — Update user attributes
+- `DELETE /users/{id}` — Soft-delete (is_active=false)
+
+### 3. Form Templates (`src/features/templates/`)
+
+Dynamic letter form templates with JSON schema fields.
+
+- `GET /templates` — List active templates
+- `GET /templates/{id}` — Get single template
+- `POST /templates` — Create template (Operator only)
+- `PUT /templates/{id}` — Update template (Operator only)
+- `DELETE /templates/{id}` — Soft-delete (is_active=false, Operator only)
+
+### 4. Submissions (`src/features/submissions/`)
+
+Core letter request lifecycle: draft → pending → approved/rejected.
+
+- `POST /submissions` — Create a new submission (draft or pending)
+- `GET /submissions` — List submissions (role-scoped, paginated)
+- `GET /submissions/{id}` — Get full detail with verifiers & attachments
+- `PUT /submissions/{id}` — Update draft/rejected submission
+- `DELETE /submissions/{id}` — Delete draft submission
+- `POST /submissions/{id}/finalize` — Submit draft to verifier pipeline
+
 ---
 
 ## 🔲 Planned
 
-### 2. Users Management (`src/features/users/`)
-Admin-only CRUD for managing users.
-
-| Endpoint | Description | Auth |
-|----------|-------------|------|
-| `GET /users` | List/search users (paginated, filterable by role/department) | Authenticated |
-| `GET /users/{id}` | Get single user profile | Authenticated |
-| `POST /users` | Create user (admin bypass, email_verified=true) | Operator only |
-| `PUT /users/{id}` | Update user attributes | Operator only |
-| `DELETE /users/{id}` | Soft-delete (is_active=false) | Operator only |
-
-**Use cases**: `ListUsersUseCase`, `CreateUserUseCase`, `UpdateUserUseCase`, `DeleteUserUseCase`
-
-**Depends on**: `IUserRepository` ✅ (already exists)
-
----
-
-### 3. Form Templates (`src/features/templates/`)
-Dynamic letter form templates with JSON schema fields.
-
-| Endpoint | Description | Auth |
-|----------|-------------|------|
-| `GET /templates` | List active templates | Public |
-| `GET /templates/{id}` | Get single template | Public |
-| `POST /templates` | Create template | Operator only |
-| `PUT /templates/{id}` | Update template | Operator only |
-| `DELETE /templates/{id}` | Soft-delete (is_active=false) | Operator only |
-
-**Use cases**: `ListTemplatesUseCase`, `CreateTemplateUseCase`, `UpdateTemplateUseCase`, `DeleteTemplateUseCase`
-
-**Depends on**: `IFormTemplateRepository` ✅ (already exists)
-
----
-
-### 4. Submissions (`src/features/submissions/`)
-Core letter request lifecycle: draft → pending → approved/rejected.
-
-| Endpoint | Description | Auth |
-|----------|-------------|------|
-| `POST /submissions` | Create a new submission (draft or pending) | Mahasiswa |
-| `GET /submissions` | List submissions (role-scoped, paginated) | Authenticated |
-| `GET /submissions/{id}` | Get full detail with verifiers & attachments | Authenticated |
-| `PUT /submissions/{id}` | Update draft/rejected submission | Mahasiswa (owner) |
-| `DELETE /submissions/{id}` | Delete draft submission | Mahasiswa (owner) |
-| `POST /submissions/{id}/finalize` | Submit draft to verifier pipeline | Mahasiswa (owner) |
-
-**Use cases**: `CreateSubmissionUseCase`, `ListSubmissionsUseCase`, `UpdateSubmissionUseCase`, `DeleteSubmissionUseCase`, `FinalizeSubmissionUseCase`
-
-**Depends on**: `ISubmissionRepository` ✅, `IFormTemplateRepository` ✅, `INotificationRepository` ✅
-
----
-
 ### 5. Verification (`src/features/verification/`)
+
 Verifier pipeline: sequential or parallel approval with HMAC e-signature.
 
 | Endpoint | Description | Auth |
@@ -83,6 +64,7 @@ Verifier pipeline: sequential or parallel approval with HMAC e-signature.
 ---
 
 ### 6. File Attachments (`src/features/files/`)
+
 Upload, download, and delete supporting documents (PDF, images, ZIP).
 
 | Endpoint | Description | Auth |
@@ -98,6 +80,7 @@ Upload, download, and delete supporting documents (PDF, images, ZIP).
 ---
 
 ### 7. Notifications (`src/features/notifications/`)
+
 In-app notification feed for submission status changes.
 
 | Endpoint | Description | Auth |
@@ -112,6 +95,7 @@ In-app notification feed for submission status changes.
 ---
 
 ### 8. Dashboard (`src/features/dashboard/`)
+
 Role-aware statistics and recent activity feed.
 
 | Endpoint | Description | Auth |
@@ -125,6 +109,7 @@ Role-aware statistics and recent activity feed.
 ---
 
 ### 9. FAQs (`src/features/faqs/`)
+
 Public FAQ page, admin-managed.
 
 | Endpoint | Description | Auth |
@@ -147,10 +132,10 @@ Priority based on dependencies (each feature unlocks the next):
 
 ```
 1. ✅ Auth              — done
-2. 🔲 Users             — admin management, needed for verifier selection
-3. 🔲 Templates         — needed before submissions
-4. 🔲 Submissions       — core feature, needs templates
-5. 🔲 Verification      — needs submissions
+2. ✅ Users             — done
+3. ✅ Templates         — done
+4. ✅ Submissions       — done
+5. 🔲 Verification      — needs submissions (next up!)
 6. 🔲 Files             — needs submissions (attachments)
 7. 🔲 Notifications     — triggered by submissions & verification
 8. 🔲 Dashboard         — aggregates everything

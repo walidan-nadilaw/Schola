@@ -1,50 +1,56 @@
-# Schola
+# 🎓 Schola
 
-Platform academic helper untuk sivitas IPB untuk projek Analisis Desain Sistem Kelompok 1
+> Platform academic helper untuk sivitas IPB untuk projek Analisis Desain Sistem Kelompok 1.
 
-## Quick Start Guide for Schola Backend
-
-### Prerequisites
-- **Python 3.10+**
-- **Poetry** or **pip** for dependency management (the project uses a `requirements.txt`).
-- **PostgreSQL** (or any SQLAlchemy‑compatible DB) running locally.
-
-### 1. Install dependencies
-```bash
-# Using pip
-pip install -r requirements.txt
-```
-If you prefer Poetry:
-```bash
-poetry install
-```
-
-### 2. Configure environment variables
-Create a `.env` file in the project root (or export variables) with at least the following keys:
-```
-DATABASE_URL=postgresql://user:password@localhost:5432/schola
-SECRET_KEY=your-very-secret-key
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-```
-Adjust the values to match your local database setup.
-
-### 3. Initialise the database
-Run the helper script to create all tables:
-```bash
-python -m backend.init_db
-```
-You should see `Database tables created successfully!`.
-
-### 4. Run the development server
-```bash
-uvicorn backend.main:app --reload
-```
-The API will be available at `http://127.0.0.1:8000`. You can explore the interactive Swagger UI at `http://127.0.0.1:8000/docs`.
-
-### 5. Quick sanity check
-- Open the Swagger UI and try the **/auth/register** and **/auth/login** endpoints.
-- Use the **/auth/me** endpoint with the returned JWT token to verify the authentication dependency works.
+Schola is a modern, clean-architecture academic document management and workflow platform tailored for the IPB University community. It automates form templates, document submissions, and multi-stage verifications.
 
 ---
-*Feel free to extend this README with deployment instructions, testing commands, or CI/CD setup as the project evolves.*
+
+## 🗂️ Project Structure
+
+The project is structured as a monorepo with distinct backend and frontend applications:
+
+```
+Schola/
+├── 📁 backend/       # FastAPI + SQLAlchemy async + PostgreSQL + Alembic API
+├── 📁 frontend/      # Frontend Application (React / Next.js)
+└── docker-compose.yml # Dev/prod orchestration for all services
+```
+
+---
+
+## 🚀 Quick Start
+
+### 1. Backend (API & Database)
+
+The backend features a fully async FastAPI web server using Clean Architecture with vertical slicing.
+
+* **Documentation & Guide:** Refer to the comprehensive [Backend README](file:///c:/Users/LENOVO/Documents/Projects/Schola/backend/README.md) for local installation, environment configuration, database migration, and API details.
+* **Database & Migrations:** Powered by **PostgreSQL 16** with schema migrations managed by **Alembic**.
+* **Quick Launch (Docker Compose):**
+
+  ```bash
+  # From the repository root
+  docker compose up --build -d
+  ```
+
+  This will spin up the database and the API with automated migrations already applied. The interactive Swagger API documentation will be available at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 2. Frontend
+
+* **Documentation & Guide:** Refer to [Frontend Directory](file:///c:/Users/LENOVO/Documents/Projects/Schola/frontend/) for setup and run instructions.
+
+---
+
+## 🛠️ Tech Stack Highlights
+
+* **Backend**: FastAPI, SQLAlchemy (Async), PostgreSQL, Alembic, PyJWT, Argon2, Poetry.
+* **Testing**: Pytest with transactional rollback/truncation for ultra-reliable test suites.
+* **Deployment**: Docker, Docker Compose.
+
+---
+
+## 📄 Key Project Documentation
+
+* 🗺️ **Feature Roadmap & Status:** [PLAN.md](file:///c:/Users/LENOVO/Documents/Projects/Schola/backend/PLAN.md)
+* 🏛️ **Architecture & Design Patterns:** [ARCHITECTURE.md](file:///c:/Users/LENOVO/Documents/Projects/Schola/backend/ARCHITECTURE.md)

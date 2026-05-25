@@ -47,18 +47,14 @@ class UserRepository(IUserRepository):
         return [row.to_user() for row in rows]
 
     async def findById(self, id: UUID) -> User | None:
-        result = await self.db.execute(
-            select(UserTable).where(UserTable.id == id)
-        )
+        result = await self.db.execute(select(UserTable).where(UserTable.id == id))
         row = result.scalars().first()
         if row is None:
             return None
         return row.to_user()
 
     async def existsById(self, id: UUID) -> bool:
-        result = await self.db.execute(
-            select(UserTable.id).where(UserTable.id == id)
-        )
+        result = await self.db.execute(select(UserTable.id).where(UserTable.id == id))
         return result.scalar_one_or_none() is not None
 
     async def findAll(self) -> Iterable[User]:
@@ -77,15 +73,11 @@ class UserRepository(IUserRepository):
         return [row.to_user() for row in rows]
 
     async def count(self) -> int:
-        result = await self.db.execute(
-            select(func.count()).select_from(UserTable)
-        )
+        result = await self.db.execute(select(func.count()).select_from(UserTable))
         return int(result.scalar_one())
 
     async def deleteById(self, id: UUID) -> None:
-        await self.db.execute(
-            delete(UserTable).where(UserTable.id == id)
-        )
+        await self.db.execute(delete(UserTable).where(UserTable.id == id))
         await self.db.commit()
 
     async def delete(self, entity: User) -> None:
@@ -95,9 +87,7 @@ class UserRepository(IUserRepository):
         ids_list = list(ids)
         if not ids_list:
             return
-        await self.db.execute(
-            delete(UserTable).where(UserTable.id.in_(ids_list))
-        )
+        await self.db.execute(delete(UserTable).where(UserTable.id.in_(ids_list)))
         await self.db.commit()
 
     async def deleteAll(self, entities: Iterable[User] | None = None) -> None:

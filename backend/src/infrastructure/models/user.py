@@ -23,21 +23,35 @@ from src.core.time_now import now
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    hashed_password: Mapped[str] = mapped_column("password_hash", String(255), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    email: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
+    )
+    hashed_password: Mapped[str] = mapped_column(
+        "password_hash", String(255), nullable=False
+    )
     nama: Mapped[str] = mapped_column("name", String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="user_role"), nullable=False, index=True)
-    departemen: Mapped[str | None] = mapped_column("department", String(255), nullable=True, index=True)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, name="user_role"), nullable=False, index=True
+    )
+    departemen: Mapped[str | None] = mapped_column(
+        "department", String(255), nullable=True, index=True
+    )
 
     # Student-specific
-    nim: Mapped[str | None] = mapped_column(String(50), unique=True, nullable=True, index=True)
+    nim: Mapped[str | None] = mapped_column(
+        String(50), unique=True, nullable=True, index=True
+    )
     fakultas: Mapped[str | None] = mapped_column(String(255), nullable=True)
     program: Mapped[str | None] = mapped_column(String(255), nullable=True)
     semester: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Faculty/Staff-specific
-    nip: Mapped[str | None] = mapped_column(String(50), unique=True, nullable=True, index=True)
+    nip: Mapped[str | None] = mapped_column(
+        String(50), unique=True, nullable=True, index=True
+    )
     position: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Common
@@ -45,14 +59,26 @@ class User(Base):
     profile_picture_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now, onupdate=now
+    )
 
-    submissions: Mapped[List["Submission"]] = relationship("Submission", back_populates="submitter", foreign_keys="[Submission.submitter_id]")
-    verifications: Mapped[List["SubmissionVerifier"]] = relationship("SubmissionVerifier", back_populates="verifier")
-    templates_created: Mapped[List["FormTemplate"]] = relationship("FormTemplate", back_populates="creator")
+    submissions: Mapped[List["Submission"]] = relationship(
+        "Submission",
+        back_populates="submitter",
+        foreign_keys="[Submission.submitter_id]",
+    )
+    verifications: Mapped[List["SubmissionVerifier"]] = relationship(
+        "SubmissionVerifier", back_populates="verifier"
+    )
+    templates_created: Mapped[List["FormTemplate"]] = relationship(
+        "FormTemplate", back_populates="creator"
+    )
 
     __mapper_args__ = {
         "polymorphic_on": role,

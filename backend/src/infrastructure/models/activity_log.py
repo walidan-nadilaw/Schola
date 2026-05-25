@@ -12,13 +12,27 @@ from src.domain.entity.activity_log import ActivityLog as DomainActivityLog
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
-    submission_id: Mapped[str | None] = mapped_column(String(50), ForeignKey("submissions.id", ondelete="SET NULL"), nullable=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    submission_id: Mapped[str | None] = mapped_column(
+        String(50),
+        ForeignKey("submissions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     action_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    action_metadata: Mapped[dict | list | None] = mapped_column("metadata", JSONB, nullable=True)
+    action_metadata: Mapped[dict | list | None] = mapped_column(
+        "metadata", JSONB, nullable=True
+    )
 
     ip_address: Mapped[str | None] = mapped_column(String(50), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -52,4 +66,3 @@ class ActivityLog(Base):
             user_agent=entity.user_agent,
             created_at=entity.created_at,
         )
-

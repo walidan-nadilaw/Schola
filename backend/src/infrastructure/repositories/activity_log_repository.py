@@ -74,9 +74,7 @@ class ActivityLogRepository(IActivityLogRepository):
         return int(result.scalar_one())
 
     async def deleteById(self, id: UUID) -> None:
-        await self.db.execute(
-            delete(ActivityLogTable).where(ActivityLogTable.id == id)
-        )
+        await self.db.execute(delete(ActivityLogTable).where(ActivityLogTable.id == id))
         await self.db.commit()
 
     async def delete(self, entity: ActivityLog) -> None:
@@ -119,9 +117,7 @@ class ActivityLogRepository(IActivityLogRepository):
 
     async def find_by_action_type(self, action_type: str) -> Iterable[ActivityLog]:
         result = await self.db.execute(
-            select(ActivityLogTable).where(
-                ActivityLogTable.action_type == action_type
-            )
+            select(ActivityLogTable).where(ActivityLogTable.action_type == action_type)
         )
         rows = result.scalars().all()
         return [row.to_domain() for row in rows]

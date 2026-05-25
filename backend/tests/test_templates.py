@@ -4,7 +4,9 @@ import pytest
 from httpx import AsyncClient
 
 
-async def _register_and_login(client: AsyncClient, email: str, password: str = "pass123"):
+async def _register_and_login(
+    client: AsyncClient, email: str, password: str = "pass123"
+):
     """Register + login, return token."""
     await client.post("/auth/register", json={"email": email, "password": password})
     resp = await client.post("/auth/login", json={"email": email, "password": password})
@@ -24,6 +26,7 @@ SAMPLE_FIELDS = [
 
 # -- List --
 
+
 @pytest.mark.asyncio
 async def test_list_templates_requires_auth(client: AsyncClient):
     resp = await client.get("/templates/")
@@ -40,17 +43,23 @@ async def test_list_templates_empty(client: AsyncClient):
 
 # -- Create (operator only) --
 
+
 @pytest.mark.asyncio
 async def test_create_template_forbidden_for_mahasiswa(client: AsyncClient):
     headers = await _auth_header(client, "tpl_mhs@apps.ipb.ac.id")
-    resp = await client.post("/templates/", headers=headers, json={
-        "letter_type": "surat_aktif",
-        "fields": SAMPLE_FIELDS,
-    })
+    resp = await client.post(
+        "/templates/",
+        headers=headers,
+        json={
+            "letter_type": "surat_aktif",
+            "fields": SAMPLE_FIELDS,
+        },
+    )
     assert resp.status_code == 403
 
 
 # -- Get --
+
 
 @pytest.mark.asyncio
 async def test_get_template_not_found(client: AsyncClient):
@@ -62,6 +71,7 @@ async def test_get_template_not_found(client: AsyncClient):
 
 
 # -- Delete (operator only) --
+
 
 @pytest.mark.asyncio
 async def test_delete_template_forbidden_for_mahasiswa(client: AsyncClient):

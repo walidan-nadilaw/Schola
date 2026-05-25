@@ -25,9 +25,7 @@ class R2StorageService(IStorageService):
         self._secret_key = settings.R2_SECRET_KEY
         self._bucket = settings.R2_BUCKET_NAME
         self._public_url = settings.R2_PUBLIC_URL.rstrip("/")
-        self._endpoint = (
-            f"https://{self._account_id}.r2.cloudflarestorage.com"
-        )
+        self._endpoint = f"https://{self._account_id}.r2.cloudflarestorage.com"
 
     def _sign_request(
         self,
@@ -49,25 +47,27 @@ class R2StorageService(IStorageService):
 
         signed_header_keys = sorted(headers.keys())
         signed_headers = ";".join(signed_header_keys)
-        canonical_headers = "".join(
-            f"{k}:{headers[k]}\n" for k in signed_header_keys
+        canonical_headers = "".join(f"{k}:{headers[k]}\n" for k in signed_header_keys)
+
+        canonical_request = "\n".join(
+            [
+                method,
+                path,
+                "",  # query string
+                canonical_headers,
+                signed_headers,
+                payload_hash,
+            ]
         )
 
-        canonical_request = "\n".join([
-            method,
-            path,
-            "",  # query string
-            canonical_headers,
-            signed_headers,
-            payload_hash,
-        ])
-
-        string_to_sign = "\n".join([
-            "AWS4-HMAC-SHA256",
-            amz_date,
-            credential_scope,
-            hashlib.sha256(canonical_request.encode()).hexdigest(),
-        ])
+        string_to_sign = "\n".join(
+            [
+                "AWS4-HMAC-SHA256",
+                amz_date,
+                credential_scope,
+                hashlib.sha256(canonical_request.encode()).hexdigest(),
+            ]
+        )
 
         def _hmac(key: bytes, msg: str) -> bytes:
             return hmac.new(key, msg.encode(), hashlib.sha256).digest()

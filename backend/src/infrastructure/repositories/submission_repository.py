@@ -91,9 +91,7 @@ class SubmissionRepository(ISubmissionRepository):
         return int(result.scalar_one())
 
     async def deleteById(self, id: str) -> None:
-        await self.db.execute(
-            delete(SubmissionTable).where(SubmissionTable.id == id)
-        )
+        await self.db.execute(delete(SubmissionTable).where(SubmissionTable.id == id))
         await self.db.commit()
 
     async def delete(self, entity: Submission) -> None:
@@ -129,9 +127,7 @@ class SubmissionRepository(ISubmissionRepository):
 
     async def find_by_status(self, status: SubmissionStatus) -> Iterable[Submission]:
         result = await self.db.execute(
-            self._query_with_relations().where(
-                SubmissionTable.status == status.value
-            )
+            self._query_with_relations().where(SubmissionTable.status == status.value)
         )
         rows = result.scalars().all()
         return [row.to_domain() for row in rows]

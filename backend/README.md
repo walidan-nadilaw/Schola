@@ -62,8 +62,10 @@ backend/
 │   │   ├── exceptions.py       # Custom HTTP exception classes
 │   │   └── http.py             # Shared response schemas
 │   └── features/               # Vertical feature slices
-│       ├── auth/               # Register, login, refresh
-│       └── users/              # User profile management
+│       ├── auth/               # Register, login, logout, profile
+│       ├── users/              # User management CRUD (admin/operator)
+│       ├── templates/          # Document templates CRUD
+│       └── submissions/        # Document submission lifecycle (draft, finalize)
 ├── alembic.ini
 ├── Dockerfile
 ├── .dockerignore
@@ -125,7 +127,16 @@ python -m alembic upgrade head
 uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API is now live at **http://localhost:8000**.
+The API is now live at **<http://localhost:8000>**.
+
+**6. Running Tests**
+
+Run the unit and integration test suite using `pytest`:
+
+```bash
+# Set up test database or ensure existing DB is accessible via .env, then run:
+pytest
+```
 
 ---
 
@@ -139,6 +150,7 @@ docker compose up --build -d
 ```
 
 This will:
+
 1. Start a PostgreSQL 16 container with a persistent named volume
 2. Build and start the API container
 3. Automatically run `alembic upgrade head` before the server starts
@@ -255,16 +267,18 @@ When the server is running, interactive docs are available at:
 
 | UI | URL |
 |---|---|
-| Swagger UI | http://localhost:8000/docs |
-| ReDoc | http://localhost:8000/redoc |
-| OpenAPI JSON | http://localhost:8000/openapi.json |
+| Swagger UI | <http://localhost:8000/docs> |
+| ReDoc | <http://localhost:8000/redoc> |
+| OpenAPI JSON | <http://localhost:8000/openapi.json> |
 
 ### Available Endpoints
 
-| Prefix | Feature |
-|---|---|
-| `/auth` | Register, login, token refresh |
-| `/users` | User profile read/update |
+| Prefix | Feature | Description | Auth Roles |
+|---|---|---|---|
+| `/auth` | Authentication | Register, login, logout, me profile | Public / Authenticated |
+| `/users` | Users Management | List, get, create, update, and soft-delete users | Authenticated (Read) / Operator+ (Write) |
+| `/templates` | Form Templates | Create, update, soft-delete, list and get form templates | Public (Read) / Operator+ (Write) |
+| `/submissions` | Submissions | Student document submissions & approval pipeline lifecycle | Mahasiswa (Create/Update) / Authenticated (List/Detail) |
 
 ---
 

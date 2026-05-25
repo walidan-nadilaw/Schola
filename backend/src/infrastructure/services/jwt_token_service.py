@@ -59,9 +59,7 @@ class JwtTokenService(ITokenService):
             "salt": self._email_salt,
             "iat": now,
         }
-        return jwt.encode(
-            payload, self._verification_secret, algorithm=self._algorithm
-        )
+        return jwt.encode(payload, self._verification_secret, algorithm=self._algorithm)
 
     def verify_email_token(
         self, token: str, expiration_seconds: int | None = None

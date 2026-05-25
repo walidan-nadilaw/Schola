@@ -47,7 +47,9 @@ async def list_templates(
     db: AsyncSession = Depends(get_async_db_session),
 ):
     """List templates. Defaults to active only."""
-    templates = await ListTemplatesUseCase(FormTemplateRepository(db)).execute(active_only)
+    templates = await ListTemplatesUseCase(FormTemplateRepository(db)).execute(
+        active_only
+    )
     return HTTPDataResponse(
         status="success",
         data=[_to_response(t) for t in templates],

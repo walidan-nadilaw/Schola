@@ -6,7 +6,6 @@ from pydantic import BaseModel, EmailStr
 
 from src.domain.entity.user import UserRole
 
-
 # ── Requests ──────────────────────────────────────────
 
 

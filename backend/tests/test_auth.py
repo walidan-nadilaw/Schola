@@ -6,11 +6,14 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_register_success(client: AsyncClient):
-    resp = await client.post("/auth/register", json={
-        "email": "student@apps.ipb.ac.id",
-        "password": "secret123",
-        "role": "mahasiswa",
-    })
+    resp = await client.post(
+        "/auth/register",
+        json={
+            "email": "student@apps.ipb.ac.id",
+            "password": "secret123",
+            "role": "mahasiswa",
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["status"] == "success"
@@ -21,10 +24,13 @@ async def test_register_success(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_register_bad_domain(client: AsyncClient):
-    resp = await client.post("/auth/register", json={
-        "email": "user@gmail.com",
-        "password": "secret123",
-    })
+    resp = await client.post(
+        "/auth/register",
+        json={
+            "email": "user@gmail.com",
+            "password": "secret123",
+        },
+    )
     assert resp.status_code == 400
     assert "tidak diizinkan" in resp.json()["error"]
 
@@ -39,14 +45,20 @@ async def test_register_duplicate_email(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient):
-    await client.post("/auth/register", json={
-        "email": "login@apps.ipb.ac.id",
-        "password": "mypassword",
-    })
-    resp = await client.post("/auth/login", json={
-        "email": "login@apps.ipb.ac.id",
-        "password": "mypassword",
-    })
+    await client.post(
+        "/auth/register",
+        json={
+            "email": "login@apps.ipb.ac.id",
+            "password": "mypassword",
+        },
+    )
+    resp = await client.post(
+        "/auth/login",
+        json={
+            "email": "login@apps.ipb.ac.id",
+            "password": "mypassword",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert "token" in data
@@ -55,14 +67,20 @@ async def test_login_success(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(client: AsyncClient):
-    await client.post("/auth/register", json={
-        "email": "wrong@apps.ipb.ac.id",
-        "password": "correct",
-    })
-    resp = await client.post("/auth/login", json={
-        "email": "wrong@apps.ipb.ac.id",
-        "password": "incorrect",
-    })
+    await client.post(
+        "/auth/register",
+        json={
+            "email": "wrong@apps.ipb.ac.id",
+            "password": "correct",
+        },
+    )
+    resp = await client.post(
+        "/auth/login",
+        json={
+            "email": "wrong@apps.ipb.ac.id",
+            "password": "incorrect",
+        },
+    )
     assert resp.status_code == 401
 
 
@@ -74,14 +92,20 @@ async def test_me_requires_auth(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_me_with_token(client: AsyncClient):
-    await client.post("/auth/register", json={
-        "email": "me@apps.ipb.ac.id",
-        "password": "pass123",
-    })
-    login = await client.post("/auth/login", json={
-        "email": "me@apps.ipb.ac.id",
-        "password": "pass123",
-    })
+    await client.post(
+        "/auth/register",
+        json={
+            "email": "me@apps.ipb.ac.id",
+            "password": "pass123",
+        },
+    )
+    login = await client.post(
+        "/auth/login",
+        json={
+            "email": "me@apps.ipb.ac.id",
+            "password": "pass123",
+        },
+    )
     token = login.json()["data"]["token"]
 
     resp = await client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
