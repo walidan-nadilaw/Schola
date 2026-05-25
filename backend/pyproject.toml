@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "schola-backend"
+version = "0.1.0"
+description = "Schola backend API"
+authors = ["Schola Team"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+fastapi = "0.128.6"
+pydantic = "2.12.5"
+email-validator = "2.3.0"
+python-dotenv = "1.2.1"
+python-multipart = "0.0.22"
+sqlalchemy = "2.0.46"
+psycopg2-binary = "2.9.11"
+passlib = "1.7.4"
+PyJWT = "2.10.1"
+httpx = "0.28.1"
+uvicorn = { version = "0.40.0", extras = ["standard"] }
+
+[tool.poetry.group.dev.dependencies]
+pytest = "8.4.2"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
