@@ -48,6 +48,15 @@ class Settings:
         self.R2_PUBLIC_URL = os.getenv("R2_PUBLIC_URL", "")
         self.FACTORY_STORAGE_TYPE = os.getenv("FACTORY_STORAGE_TYPE", "").lower()
 
+        # ── File upload constraints ──────────────────────
+        self.MAX_FILE_SIZE_BYTES = int(
+            os.getenv("MAX_FILE_SIZE_BYTES", str(10 * 1024 * 1024))
+        )  # default 10 MB
+        self.ALLOWED_MIME_TYPES = os.getenv(
+            "ALLOWED_MIME_TYPES",
+            "application/pdf,image/jpeg,image/png,application/zip",
+        ).split(",")
+
     @staticmethod
     def _get_required_env_var(var_name: str) -> str:
         """Get a required environment variable, raising an error if it's not set."""

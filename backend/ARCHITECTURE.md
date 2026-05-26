@@ -1,4 +1,4 @@
-# Schola Backend — Architecture Guide
+# Schola Backend - Architecture Guide
 
 ## Overview
 
@@ -33,15 +33,21 @@ src/
 │   ├── error_handler.py   # Global exception handlers
 │   ├── http.py            # Generic response schemas
 │   └── deps/
-│       └── auth.py        # get_current_user, require_role
+│       ├── auth.py        # get_current_user, require_role
+│       └── storage.py     # get_storage_service (R2/local)
 │
-├── features/              # Vertical feature slices
-│   └── auth/
-│       ├── schemas.py     # Pydantic request/response models
-│       ├── use_case.py    # Business logic
-│       └── router.py      # FastAPI endpoints
+├── features/              # Vertical feature slices (9 features)
+│   ├── auth/              # Register, login, logout, profile
+│   ├── users/             # User management (operator CRUD)
+│   ├── templates/         # Form templates CRUD
+│   ├── submissions/       # Submission lifecycle + verifier assignment
+│   ├── verification/      # Verifier pipeline with HMAC e-signature
+│   ├── files/             # File upload/download/delete (R2 + local)
+│   ├── notifications/     # In-app notification feed
+│   ├── dashboard/         # Role-aware stats + activity
+│   └── faqs/              # Public FAQ (operator CRUD)
 │
-└── app.py                 # Entrypoint — mounts routers & middleware
+└── app.py                 # Entrypoint - mounts routers, CORS, lifespan seeder
 ```
 
 ---
@@ -49,26 +55,26 @@ src/
 ## Layers & Dependency Rule
 
 ```
-    ┌──────────────────────────┐
-    │       Domain Layer       │  ← Innermost, no dependencies
-    │  Entities, Interfaces    │
-    └────────────▲─────────────┘
-                 │
-    ┌────────────┴─────────────┐
-    │    Application Layer     │  ← Service port interfaces
-    │  IPasswordService, etc.  │
-    └────────────▲─────────────┘
-                 │
-    ┌────────────┴─────────────┐
-    │  Infrastructure Layer    │  ← Implements ports
-    │  SQLAlchemy, PyJWT, etc. │
-    └────────────▲─────────────┘
-                 │
-    ┌────────────┴─────────────┐
-    │     Features Layer       │  ← Wires everything together
-    │  Schemas, UseCases,      │
-    │  Routers                 │
-    └──────────────────────────┘
+    +--------------------------+
+    |       Domain Layer       |  <-- Innermost, no dependencies
+    |  Entities, Interfaces    |
+    +------------^-------------+
+                 |
+    +------------+-------------+
+    |    Application Layer     |  <-- Service port interfaces
+    |  IPasswordService, etc.  |
+    +------------^-------------+
+                 |
+    +------------+-------------+
+    |  Infrastructure Layer    |  <-- Implements ports
+    |  SQLAlchemy, PyJWT, etc. |
+    +------------^-------------+
+                 |
+    +------------+-------------+
+    |     Features Layer       |  <-- Wires everything together
+    |  Schemas, UseCases,      |
+    |  Routers                 |
+    +--------------------------+
 ```
 
 **The rule**: each layer may only depend on layers above it (more inward). Domain never imports from infrastructure. Use cases depend on interfaces, never on concrete classes.
@@ -79,8 +85,8 @@ src/
 
 | Pattern | Where | Purpose |
 |---------|-------|---------|
-| **Repository** | `IUserRepository` → `UserRepository` | Abstract DB access behind an interface |
-| **Ports & Adapters** | `IPasswordService` → `ArgonPasswordService` | Domain defines what it needs, infra provides how |
+| **Repository** | `IUserRepository` -> `UserRepository` | Abstract DB access behind an interface |
+| **Ports & Adapters** | `IPasswordService` -> `ArgonPasswordService` | Domain defines what it needs, infra provides how |
 | **Use Case / Interactor** | `RegisterUseCase` | One class, one business operation, one `execute()` |
 | **Data Mapper** | `to_domain()` / `from_domain()` on ORM models | Bridge between SQLAlchemy and domain dataclasses |
 | **Dependency Injection** | Router creates and injects deps into use cases | Keeps use cases testable and decoupled |
@@ -93,7 +99,7 @@ src/
 
 Example: adding a **Submissions** feature.
 
-### Step 1 — Domain Entity (if new)
+### Step 1 - Domain Entity (if new)
 
 If you need a new entity, create it in `src/domain/entity/`:
 
@@ -112,7 +118,7 @@ class Submission:
         """Factory with domain validation."""
 ```
 
-### Step 2 — Repository Interface (if new)
+### Step 2 - Repository Interface (if new)
 
 Define what persistence operations the domain needs:
 
@@ -124,7 +130,7 @@ class ISubmissionRepository(IRepository[Submission, str]):
         ...
 ```
 
-### Step 3 — Infrastructure Model (if new)
+### Step 3 - Infrastructure Model (if new)
 
 Create the ORM model with bidirectional mapping:
 
@@ -144,7 +150,7 @@ class Submission(Base):
 
 Then run: `alembic revision --autogenerate -m "Add submissions table"` and `alembic upgrade head`.
 
-### Step 4 — Concrete Repository (if new)
+### Step 4 - Concrete Repository (if new)
 
 Implement the interface:
 
@@ -158,7 +164,7 @@ class SubmissionRepository(ISubmissionRepository):
         ...
 ```
 
-### Step 5 — Feature Slice
+### Step 5 - Feature Slice
 
 Create the vertical slice:
 
@@ -170,7 +176,7 @@ src/features/submissions/
 └── router.py        # FastAPI endpoints
 ```
 
-**schemas.py** — define request/response models:
+**schemas.py** - define request/response models:
 ```python
 class CreateSubmissionRequest(BaseModel):
     template_id: str
@@ -183,7 +189,7 @@ class SubmissionResponse(BaseModel):
     ...
 ```
 
-**use_case.py** — business logic with injected interfaces:
+**use_case.py** - business logic with injected interfaces:
 ```python
 class CreateSubmissionUseCase:
     def __init__(
@@ -200,7 +206,7 @@ class CreateSubmissionUseCase:
         # 3. Persist and return
 ```
 
-**router.py** — thin adapter, wires concrete deps:
+**router.py** - thin adapter, wires concrete deps:
 ```python
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
 
@@ -218,7 +224,7 @@ async def create_submission(
     return HTTPDataResponse(status="success", data=..., message="...")
 ```
 
-### Step 6 — Mount the Router
+### Step 6 - Mount the Router
 
 Add one line in `src/app.py`:
 
@@ -227,7 +233,7 @@ from src.features.submissions.router import router as submissions_router
 app.include_router(submissions_router)
 ```
 
-### Step 7 — Verify
+### Step 7 - Verify
 
 ```bash
 # Compile check
@@ -243,10 +249,10 @@ uvicorn src.app:app --reload
 
 ## Conventions
 
-- **Domain entities** are plain `@dataclass` classes — no ORM, no Pydantic.
+- **Domain entities** are plain `@dataclass` classes - no ORM, no Pydantic.
 - **ORM models** always provide `to_domain()` and `from_domain()` mappers.
-- **Use cases** receive interfaces via constructor — never import concrete implementations.
+- **Use cases** receive interfaces via constructor - never import concrete implementations.
 - **Routers** are the only place where concrete implementations are instantiated.
-- **Timestamps** use `src.core.time_now.now` — single source of truth for UTC time.
+- **Timestamps** use `src.core.time_now.now` - single source of truth for UTC time.
 - **Error messages** are in Indonesian (Bahasa) for user-facing strings.
 - **Response format** uses `HTTPDataResponse` / `HTTPMessageResponse` from `src.api.http`.

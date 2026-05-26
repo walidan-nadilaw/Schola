@@ -26,6 +26,7 @@ class VerifierStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    CANCELLED = "cancelled"
 
 
 @dataclass
@@ -133,6 +134,12 @@ class SubmissionVerifier:
         now = _utcnow()
         self.signature_hash = signature_hash
         self.signature_timestamp = now
+        self.updated_at = now
+
+    def cancel(self) -> None:
+        """Cancel this verification step (downstream of a rejection)."""
+        now = _utcnow()
+        self.status = VerifierStatus.CANCELLED
         self.updated_at = now
 
 

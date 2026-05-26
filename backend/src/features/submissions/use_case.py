@@ -7,7 +7,9 @@ from uuid import UUID
 from src.api.exceptions import BadRequestException, NotFoundException
 from src.domain.entity.i_submission_repository import ISubmissionRepository
 from src.domain.entity.i_template_repository import IFormTemplateRepository
-from src.domain.entity.submission import Submission, SubmissionStatus
+from src.domain.entity.i_user_repository import IUserRepository
+from src.domain.entity.submission import Submission, SubmissionStatus, SubmissionVerifier, VerifierRole
+from src.domain.entity.user import UserRole
 
 
 def _generate_submission_id(letter_type: str) -> str:
@@ -83,22 +85,86 @@ class CreateSubmissionUseCase:
 
 
 class SubmitSubmissionUseCase:
-    """Move a draft submission to 'submitted'."""
+    """Finalize a draft: validate fields, assign verifiers, submit."""
 
-    def __init__(self, repo: ISubmissionRepository) -> None:
-        self._repo = repo
+    def __init__(
+        self,
+        sub_repo: ISubmissionRepository,
+        tpl_repo: IFormTemplateRepository,
+        user_repo: IUserRepository,
+    ) -> None:
+        self._sub_repo = sub_repo
+        self._tpl_repo = tpl_repo
+        self._user_repo = user_repo
 
-    async def execute(self, submission_id: str, submitter_id: UUID) -> Submission:
-        sub = await self._repo.findById(submission_id)
+    async def execute(
+        self,
+        submission_id: str,
+        submitter_id: UUID,
+        verifier_ids: list[UUID],
+        *,
+        is_ordered: bool = True,
+    ) -> Submission:
+        sub = await self._sub_repo.findById(submission_id)
         if sub is None:
             raise NotFoundException("Pengajuan tidak ditemukan")
         if sub.submitter_id != submitter_id:
             raise BadRequestException("Bukan pengajuan kamu")
-        if not sub.is_draft:
+        if sub.status != SubmissionStatus.DRAFT:
             raise BadRequestException("Pengajuan sudah disubmit")
 
+        if not verifier_ids:
+            raise BadRequestException("Minimal satu verifikator harus dipilih")
+
+        # ── Validate template fields ──
+        template = await self._tpl_repo.findById(sub.template_id)
+        if template is None:
+            raise NotFoundException("Template surat tidak ditemukan")
+        self._validate_form_fields(template.fields, sub.form_data)
+
+        # ── Validate verifiers exist ──
+        users = await self._user_repo.findAllById(verifier_ids)
+        found_ids = {u.id for u in users}
+        for vid in verifier_ids:
+            if vid not in found_ids:
+                raise NotFoundException(f"Verifikator dengan ID {vid} tidak valid")
+
+        # ── Assign verifiers ──
+        total = len(verifier_ids)
+        verifiers: list[SubmissionVerifier] = []
+        for i, vid in enumerate(verifier_ids):
+            role = VerifierRole.SIGNER if i == total - 1 else VerifierRole.VERIFIER
+            verifiers.append(SubmissionVerifier.New(
+                submission_id=sub.id,
+                verifier_id=vid,
+                verifier_order=i + 1,
+                verifier_role=role,
+            ))
+
+        sub.verifiers = verifiers
+        sub.is_ordered_verification = is_ordered
         sub.submit()
-        return await self._repo.update(sub)
+        return await self._sub_repo.update(sub)
+
+    @staticmethod
+    def _validate_form_fields(
+        fields: list[dict[str, Any]] | list[Any],
+        form_data: dict[str, Any] | list[Any],
+    ) -> None:
+        """Raise 400 if required fields are missing or empty."""
+        if not isinstance(form_data, dict) or not isinstance(fields, list):
+            return
+        for field in fields:
+            if not isinstance(field, dict):
+                continue
+            fid = field.get("id")
+            label = field.get("label", fid or "Unknown")
+            if field.get("required", True):
+                if fid not in form_data:
+                    raise BadRequestException(f"Field '{label}' wajib diisi")
+                val = form_data.get(fid)
+                if val is None or str(val).strip() == "":
+                    raise BadRequestException(f"Field '{label}' tidak boleh kosong")
 
 
 class UpdateSubmissionUseCase:

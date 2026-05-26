@@ -53,11 +53,16 @@ def _to_response(user: User) -> UserResponse:
 async def list_users(
     page: int = 1,
     limit: int = 20,
+    search: str | None = None,
+    role: str | None = None,
+    department: str | None = None,
     _current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db_session),
 ):
-    """List all users (paginated)."""
-    users, total = await ListUsersUseCase(UserRepository(db)).execute(page, limit)
+    """List users with optional search, role filter, and department filter."""
+    users, total = await ListUsersUseCase(UserRepository(db)).execute(
+        page, limit, search=search, role=role, department=department
+    )
     return HTTPDataResponse(
         status="success",
         data=UserListResponse(

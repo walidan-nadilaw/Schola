@@ -80,11 +80,6 @@ class User(Base):
         "FormTemplate", back_populates="creator"
     )
 
-    __mapper_args__ = {
-        "polymorphic_on": role,
-        "polymorphic_identity": "user",
-    }
-
     def to_user(self) -> DomainUser:
         return DomainUser(
             id=self.id,

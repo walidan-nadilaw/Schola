@@ -65,7 +65,12 @@ backend/
 │       ├── auth/               # Register, login, logout, profile
 │       ├── users/              # User management CRUD (admin/operator)
 │       ├── templates/          # Document templates CRUD
-│       └── submissions/        # Document submission lifecycle (draft, finalize)
+│       ├── submissions/        # Document submission lifecycle (draft, finalize)
+│       ├── verification/       # Verifier pipeline with HMAC e-signature
+│       ├── files/              # File upload, download & delete (PDF, images, ZIP)
+│       ├── notifications/      # In-app notification feed
+│       ├── dashboard/          # Role-aware stats & activity
+│       └── faqs/               # Public FAQ (CRUD operator-only)
 ├── alembic.ini
 ├── Dockerfile
 ├── .dockerignore
@@ -153,7 +158,8 @@ This will:
 
 1. Start a PostgreSQL 16 container with a persistent named volume
 2. Build and start the API container
-3. Automatically run `alembic upgrade head` before the server starts
+3. Run `alembic upgrade head` before the server starts
+4. Auto-seed demo data on first boot (admin@ipb.ac.id / admin123 + 5 test users)
 
 **Common commands:**
 
@@ -202,6 +208,8 @@ Copy `.env.example` to `.env` and fill in the values. **Required** variables wil
 | `R2_BUCKET_NAME` | ❌ | — | R2 bucket name |
 | `R2_PUBLIC_URL` | ❌ | — | Public URL for R2 assets |
 | `FACTORY_STORAGE_TYPE` | ❌ | — | Set to `r2` to enable R2 storage |
+| `MAX_FILE_SIZE_BYTES` | ❌ | `10485760` | Max upload file size in bytes (default 10 MB) |
+| `ALLOWED_MIME_TYPES` | ❌ | `application/pdf,image/jpeg,image/png,application/zip` | Comma-separated allowed MIME types |
 
 ---
 
@@ -278,7 +286,12 @@ When the server is running, interactive docs are available at:
 | `/auth` | Authentication | Register, login, logout, me profile | Public / Authenticated |
 | `/users` | Users Management | List, get, create, update, and soft-delete users | Authenticated (Read) / Operator+ (Write) |
 | `/templates` | Form Templates | Create, update, soft-delete, list and get form templates | Public (Read) / Operator+ (Write) |
-| `/submissions` | Submissions | Student document submissions & approval pipeline lifecycle | Mahasiswa (Create/Update) / Authenticated (List/Detail) |
+| `/submissions` | Submissions | Student document submissions and approval pipeline lifecycle | Mahasiswa (Create/Update) / Authenticated (List/Detail) |
+| `/verifications` | Verification | Verifier pipeline: list pending, approve/reject with HMAC e-signature | Dosen/Pejabat |
+| `/files` | File Attachments | Upload, download, and delete supporting documents (R2 or local) | Authenticated |
+| `/notifications` | Notifications | List and mark notifications as read | Authenticated |
+| `/dashboard` | Dashboard | Role-aware submission counts & recent activity | Authenticated |
+| `/faqs` | FAQs | List, get (public); create, update, delete (operator) | Public / Operator |
 
 ---
 
