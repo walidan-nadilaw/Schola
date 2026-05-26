@@ -80,3 +80,52 @@ async def test_delete_template_forbidden_for_mahasiswa(client: AsyncClient):
         "/templates/00000000-0000-0000-0000-000000000000", headers=headers
     )
     assert resp.status_code == 403
+
+
+# -- Full CRUD flow as operator --
+
+
+@pytest.mark.asyncio
+async def test_full_template_crud_flow(client: AsyncClient):
+    """Operator creates, reads, updates, and soft-deletes a template."""
+    from sqlalchemy import text
+    from tests.conftest import engine
+
+    email = "tpl_crud_op@apps.ipb.ac.id"
+    await client.post("/auth/register", json={"email": email, "password": "pass123"})
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE users SET role = 'OPERATOR_LEMBAGA' WHERE email = :e"),
+            {"e": email},
+        )
+    resp = await client.post("/auth/login", json={"email": email, "password": "pass123"})
+    op_h = {"Authorization": f"Bearer {resp.json()['data']['token']}"}
+
+    # Create
+    create = await client.post("/templates/", headers=op_h, json={
+        "letter_type": "Surat Aktif",
+        "fields": SAMPLE_FIELDS,
+    })
+    assert create.status_code == 201
+    tpl_id = create.json()["data"]["id"]
+
+    # Read
+    get = await client.get(f"/templates/{tpl_id}", headers=op_h)
+    assert get.status_code == 200
+    assert get.json()["data"]["letter_type"] == "Surat Aktif"
+
+    # Update
+    update = await client.put(f"/templates/{tpl_id}", headers=op_h, json={
+        "letter_type": "Surat Aktif Updated",
+        "fields": SAMPLE_FIELDS,
+    })
+    assert update.status_code == 200
+    assert update.json()["data"]["letter_type"] == "Surat Aktif Updated"
+
+    # Soft-delete
+    delete = await client.delete(f"/templates/{tpl_id}", headers=op_h)
+    assert delete.status_code in (200, 204)
+
+    # Verify inactive
+    get2 = await client.get(f"/templates/{tpl_id}", headers=op_h)
+    assert get2.json()["data"]["is_active"] is False

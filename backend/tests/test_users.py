@@ -83,3 +83,40 @@ async def test_delete_user_forbidden_for_mahasiswa(client: AsyncClient):
         "/users/00000000-0000-0000-0000-000000000000", headers=headers
     )
     assert resp.status_code == 403
+
+
+# -- Search / filter --
+
+
+@pytest.mark.asyncio
+async def test_search_users_by_email(client: AsyncClient):
+    headers = await _auth_header(client, "search_u1@apps.ipb.ac.id")
+    # search for own email
+    resp = await client.get("/users/?search=search_u1", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert len(data["data"]) == 1
+    assert "search_u1" in data["data"][0]["email"]
+
+
+@pytest.mark.asyncio
+async def test_filter_users_by_role(client: AsyncClient):
+    from sqlalchemy import text
+    from tests.conftest import engine
+
+    # Create an operator
+    op_email = "role_op@apps.ipb.ac.id"
+    await client.post("/auth/register", json={"email": op_email, "password": "pass123"})
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE users SET role = 'OPERATOR_LEMBAGA' WHERE email = :e"),
+            {"e": op_email},
+        )
+
+    # Login as mahasiswa and filter by role
+    headers = await _auth_header(client, "role_mhs@apps.ipb.ac.id")
+    resp = await client.get("/users/?role=MAHASISWA", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    for u in data["data"]:
+        assert u["role"] == "MAHASISWA"
