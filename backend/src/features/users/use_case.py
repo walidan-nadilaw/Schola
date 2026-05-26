@@ -30,8 +30,7 @@ class ListUsersUseCase:
             q = search.lower()
             all_users = [
                 u for u in all_users
-                if q in (u.nama or "").lower()
-                or q in (u.email or "").lower()
+                if q in (u.email or "").lower()
                 or q in (u.nim or "")
                 or q in (u.nip or "")
             ]
