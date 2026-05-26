@@ -45,7 +45,7 @@ The backend features a fully async FastAPI web server using Clean Architecture w
 ## Tech Stack Highlights
 
 - **Backend**: FastAPI, SQLAlchemy (Async), PostgreSQL, Alembic, PyJWT, Argon2, Poetry.
-- **Testing**: Pytest with transactional rollback/truncation for ultra-reliable test suites.
+- **Testing**: 71 tests across 9 feature slices with transactional isolation.
 - **Deployment**: Docker, Docker Compose.
 
 ---
