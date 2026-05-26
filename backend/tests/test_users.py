@@ -91,8 +91,7 @@ async def test_delete_user_forbidden_for_mahasiswa(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_search_users_by_email(client: AsyncClient):
     headers = await _auth_header(client, "search_u1@apps.ipb.ac.id")
-    # search for own email
-    resp = await client.get("/users/?search=search_u1", headers=headers)
+    resp = await client.get("/users", params={"search": "search_u1"}, headers=headers)
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert len(data["data"]) == 1
