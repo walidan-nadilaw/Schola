@@ -46,3 +46,12 @@ class ISubmissionRepository(IRepository[Submission, str]):
         """Persist changes to a single submission verifier row."""
         pass
 
+    @abstractmethod
+    async def count_by_status(
+        self,
+        submitter_id: UUID | None = None,
+        verifier_id: UUID | None = None,
+    ) -> dict[str, int]:
+        """Return a dict of {status: count} filtered optionally by submitter or verifier."""
+        pass
+

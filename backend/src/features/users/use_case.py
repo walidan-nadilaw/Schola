@@ -23,27 +23,9 @@ class ListUsersUseCase:
         department: str | None = None,
     ) -> tuple[list[User], int]:
         """Returns (users_list, total_count)."""
-        all_users = list(await self._repo.findAll())
-
-        # Filter
-        if search:
-            q = search.lower()
-            all_users = [
-                u for u in all_users
-                if q in (u.email or "").lower()
-                or q in (u.nim or "")
-                or q in (u.nip or "")
-            ]
-        if role:
-            r = role.upper()
-            all_users = [u for u in all_users if u.role.value.upper() == r]
-        if department:
-            d = department.lower()
-            all_users = [u for u in all_users if d in (u.departemen or "").lower()]
-
-        total = len(all_users)
-        start = (page - 1) * limit
-        return all_users[start : start + limit], total
+        return await self._repo.find_all_filtered(
+            search=search, role=role, department=department, page=page, limit=limit
+        )
 
 
 class GetUserUseCase:

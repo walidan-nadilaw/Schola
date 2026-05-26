@@ -188,3 +188,26 @@ class SubmissionRepository(ISubmissionRepository):
         await self.db.refresh(merged)
         return merged.to_domain()
 
+    async def count_by_status(
+        self,
+        submitter_id: UUID | None = None,
+        verifier_id: UUID | None = None,
+    ) -> dict[str, int]:
+        """Return {status: count} with optional filters (OR combined)."""
+        from sqlalchemy import or_
+
+        query = select(SubmissionTable.status, func.count(func.distinct(SubmissionTable.id)))
+        if verifier_id:
+            query = query.outerjoin(SubmissionVerifierTable)
+        conditions = []
+        if submitter_id:
+            conditions.append(SubmissionTable.submitter_id == submitter_id)
+        if verifier_id:
+            conditions.append(SubmissionVerifierTable.verifier_id == verifier_id)
+        if conditions:
+            query = query.where(or_(*conditions))
+        query = query.group_by(SubmissionTable.status)
+
+        result = await self.db.execute(query)
+        return {row[0]: row[1] for row in result.all()}
+
