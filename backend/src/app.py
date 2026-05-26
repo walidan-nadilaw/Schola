@@ -62,6 +62,9 @@ app.include_router(files_router)
 app.include_router(notifications_router)
 app.include_router(dashboard_router)
 app.include_router(faqs_router)
+
+
+@app.get("/")
 async def root():
     return {"message": "Welcome to the Schola API"}
 

@@ -5,9 +5,9 @@ services:
     container_name: schola_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-schola}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: schola
     volumes:
       - schola_pgdata:/var/lib/postgresql/data
     ports:
