@@ -108,3 +108,141 @@ async def test_delete_submission_not_found(client: AsyncClient):
     headers = await _auth_header(client, "sub_delnf@apps.ipb.ac.id")
     resp = await client.delete("/submissions/NOTEXIST", headers=headers)
     assert resp.status_code == 404
+
+
+# -- Submit flow: verifier assignment + form validation --
+
+
+@pytest.mark.asyncio
+async def test_submit_with_verifiers(client: AsyncClient):
+    """Create a draft, submit with verifiers, verify status changes."""
+    from sqlalchemy import text
+    from tests.conftest import engine
+
+    # 1. Create template as operator
+    op_email = "sub_submit_op@apps.ipb.ac.id"
+    await client.post("/auth/register", json={"email": op_email, "password": "pass123"})
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE users SET role = 'OPERATOR_LEMBAGA' WHERE email = :e"),
+            {"e": op_email},
+        )
+    op_resp = await client.post("/auth/login", json={"email": op_email, "password": "pass123"})
+    op_h = {"Authorization": f"Bearer {op_resp.json()['data']['token']}"}
+
+    tpl = await client.post("/templates/", headers=op_h, json={
+        "letter_type": "Surat Aktif",
+        "fields": [
+            {"id": "nama", "label": "Nama", "type": "text", "required": True},
+            {"id": "Keperluan", "label": "Keperluan", "type": "text", "required": True},
+        ],
+    })
+    tpl_id = tpl.json()["data"]["id"]
+
+    # 2. Create dosen as verifier
+    dosen_email = "sub_submit_dosen@apps.ipb.ac.id"
+    await client.post("/auth/register", json={"email": dosen_email, "password": "pass123"})
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE users SET role = 'DOSEN_PEJABAT' WHERE email = :e"),
+            {"e": dosen_email},
+        )
+    dosen_resp = await client.post("/auth/login", json={"email": dosen_email, "password": "pass123"})
+    dosen_id = dosen_resp.json()["data"]["id"]
+
+    # 3. Mahasiswa creates draft
+    mhs_h = await _auth_header(client, "sub_submit_mhs@apps.ipb.ac.id")
+    draft = await client.post("/submissions/", headers=mhs_h, json={
+        "template_id": tpl_id,
+        "form_data": {"nama": "Test Mahasiswa", "Keperluan": "Pengajuan Surat"},
+    })
+    sub_id = draft.json()["data"]["id"]
+    assert draft.json()["data"]["status"] == "draft"
+
+    # 4. Submit with verifiers
+    sub = await client.post(f"/submissions/{sub_id}/submit", headers=mhs_h, json={
+        "verifiers": [dosen_id],
+        "is_ordered_verification": True,
+    })
+    assert sub.status_code == 200
+    assert sub.json()["data"]["status"] == "submitted"
+
+
+@pytest.mark.asyncio
+async def test_submit_missing_required_field(client: AsyncClient):
+    """Submit should fail if required template field is missing."""
+    from sqlalchemy import text
+    from tests.conftest import engine
+
+    op_email = "sub_val_op@apps.ipb.ac.id"
+    await client.post("/auth/register", json={"email": op_email, "password": "pass123"})
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE users SET role = 'OPERATOR_LEMBAGA' WHERE email = :e"),
+            {"e": op_email},
+        )
+    op_resp = await client.post("/auth/login", json={"email": op_email, "password": "pass123"})
+    op_h = {"Authorization": f"Bearer {op_resp.json()['data']['token']}"}
+
+    tpl = await client.post("/templates/", headers=op_h, json={
+        "letter_type": "Surat Aktif",
+        "fields": [{"id": "wajib", "label": "Wajib Diisi", "type": "text", "required": True}],
+    })
+    tpl_id = tpl.json()["data"]["id"]
+
+    dosen_email = "sub_val_dosen@apps.ipb.ac.id"
+    await client.post("/auth/register", json={"email": dosen_email, "password": "pass123"})
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE users SET role = 'DOSEN_PEJABAT' WHERE email = :e"),
+            {"e": dosen_email},
+        )
+    dosen_resp = await client.post("/auth/login", json={"email": dosen_email, "password": "pass123"})
+    dosen_id = dosen_resp.json()["data"]["id"]
+
+    mhs_h = await _auth_header(client, "sub_val_mhs@apps.ipb.ac.id")
+    draft = await client.post("/submissions/", headers=mhs_h, json={
+        "template_id": tpl_id,
+        "form_data": {},  # missing "wajib"
+    })
+    sub_id = draft.json()["data"]["id"]
+
+    resp = await client.post(f"/submissions/{sub_id}/submit", headers=mhs_h, json={
+        "verifiers": [dosen_id],
+    })
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_submit_nonexistent_verifier(client: AsyncClient):
+    """Submit should fail if verifier does not exist."""
+    from sqlalchemy import text
+    from tests.conftest import engine
+
+    op_email = "sub_badv_op@apps.ipb.ac.id"
+    await client.post("/auth/register", json={"email": op_email, "password": "pass123"})
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE users SET role = 'OPERATOR_LEMBAGA' WHERE email = :e"),
+            {"e": op_email},
+        )
+    op_resp = await client.post("/auth/login", json={"email": op_email, "password": "pass123"})
+    op_h = {"Authorization": f"Bearer {op_resp.json()['data']['token']}"}
+
+    tpl = await client.post("/templates/", headers=op_h, json={
+        "letter_type": "Surat Aktif",
+        "fields": [{"id": "x", "label": "X", "type": "text", "required": False}],
+    })
+    tpl_id = tpl.json()["data"]["id"]
+
+    mhs_h = await _auth_header(client, "sub_badv_mhs@apps.ipb.ac.id")
+    draft = await client.post("/submissions/", headers=mhs_h, json={
+        "template_id": tpl_id,
+        "form_data": {},
+    })
+    sub_id = draft.json()["data"]["id"]
+
+    resp = await client.post(f"/submissions/{sub_id}/submit", headers=mhs_h, json={
+        "verifiers": ["00000000-0000-0000-0000-000000000000"],
+    })
+    assert resp.status_code == 404
