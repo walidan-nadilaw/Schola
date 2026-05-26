@@ -140,3 +140,36 @@ class SubmissionRepository(ISubmissionRepository):
         )
         rows = result.scalars().all()
         return [row.to_domain() for row in rows]
+
+    async def find_pending_verifications(self, verifier_id: UUID) -> list[Submission]:
+        """Submissions where this user has a pending verifier row and submission is submitted."""
+        result = await self.db.execute(
+            self._query_with_relations()
+            .join(SubmissionVerifierTable)
+            .where(
+                SubmissionVerifierTable.verifier_id == verifier_id,
+                SubmissionVerifierTable.status == "pending",
+                SubmissionTable.status == "submitted",
+            )
+        )
+        rows = result.scalars().unique().all()
+        return [row.to_domain() for row in rows]
+
+    async def find_by_verifier_id(self, verifier_id: UUID) -> list[Submission]:
+        """Find all submissions where this user is assigned as a verifier (any status)."""
+        result = await self.db.execute(
+            self._query_with_relations()
+            .join(SubmissionVerifierTable)
+            .where(SubmissionVerifierTable.verifier_id == verifier_id)
+        )
+        rows = result.scalars().unique().all()
+        return [row.to_domain() for row in rows]
+
+    async def update_verifier(self, verifier) -> object:
+        """Persist changes to a single submission verifier row."""
+        row = SubmissionVerifierTable.from_domain(verifier)
+        merged = await self.db.merge(row)
+        await self.db.commit()
+        await self.db.refresh(merged)
+        return merged.to_domain()
+

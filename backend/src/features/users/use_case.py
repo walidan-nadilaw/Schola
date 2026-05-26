@@ -9,7 +9,7 @@ from src.domain.entity.user import User, UserRole
 
 
 class ListUsersUseCase:
-    """List all users with basic pagination."""
+    """List users with pagination, search, and optional filters."""
 
     def __init__(self, user_repo: IUserRepository) -> None:
         self._repo = user_repo
@@ -18,9 +18,30 @@ class ListUsersUseCase:
         self,
         page: int = 1,
         limit: int = 20,
+        search: str | None = None,
+        role: str | None = None,
+        department: str | None = None,
     ) -> tuple[list[User], int]:
         """Returns (users_list, total_count)."""
         all_users = list(await self._repo.findAll())
+
+        # Filter
+        if search:
+            q = search.lower()
+            all_users = [
+                u for u in all_users
+                if q in (u.nama or "").lower()
+                or q in (u.email or "").lower()
+                or q in (u.nim or "")
+                or q in (u.nip or "")
+            ]
+        if role:
+            r = role.upper()
+            all_users = [u for u in all_users if u.role.value.upper() == r]
+        if department:
+            d = department.lower()
+            all_users = [u for u in all_users if d in (u.departemen or "").lower()]
+
         total = len(all_users)
         start = (page - 1) * limit
         return all_users[start : start + limit], total

@@ -11,10 +11,12 @@ from src.domain.entity.user import User, UserRole
 from src.infrastructure.db import get_async_db_session
 from src.infrastructure.repositories.submission_repository import SubmissionRepository
 from src.infrastructure.repositories.template_repository import FormTemplateRepository
+from src.infrastructure.repositories.user_repository import UserRepository
 
 from .schemas import (
     CreateSubmissionRequest,
     SubmissionResponse,
+    SubmitRequest,
     UpdateSubmissionRequest,
 )
 from .use_case import (
@@ -73,7 +75,7 @@ async def list_submissions(
 
 
 @router.get(
-    "/{submission_id}",
+    "/{submission_id:path}",
     response_model=HTTPDataResponse[SubmissionResponse],
     responses={
         401: {"model": HTTPErrorResponse},
@@ -132,22 +134,31 @@ async def create_submission(
 )
 async def submit_submission(
     submission_id: str,
+    body: SubmitRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db_session),
 ):
-    """Submit a draft (changes status from draft to submitted)."""
-    s = await SubmitSubmissionUseCase(SubmissionRepository(db)).execute(
-        submission_id, current_user.id
+    """Finalize a draft: validate fields, assign verifiers, change status to submitted."""
+    uc = SubmitSubmissionUseCase(
+        SubmissionRepository(db),
+        FormTemplateRepository(db),
+        UserRepository(db),
+    )
+    s = await uc.execute(
+        submission_id,
+        current_user.id,
+        [UUID(v) for v in body.verifiers],
+        is_ordered=body.is_ordered_verification,
     )
     return HTTPDataResponse(
         status="success",
         data=_to_response(s),
-        message="Pengajuan berhasil disubmit",
+        message="Pengajuan berhasil disubmit ke verifikator",
     )
 
 
 @router.put(
-    "/{submission_id}",
+    "/{submission_id:path}",
     response_model=HTTPDataResponse[SubmissionResponse],
     responses={
         400: {"model": HTTPErrorResponse},
@@ -174,7 +185,7 @@ async def update_submission(
 
 
 @router.delete(
-    "/{submission_id}",
+    "/{submission_id:path}",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         400: {"model": HTTPErrorResponse},

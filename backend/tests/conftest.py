@@ -13,6 +13,8 @@ from sqlalchemy.pool import NullPool
 from src.core.config import settings
 from src.infrastructure.db import Base, get_async_db_session
 from src.app import app
+from src.api.deps.storage import get_storage_service
+from src.application.i_storage_service import IStorageService, StoredFile
 
 import src.infrastructure.models  # noqa, register all models
 
@@ -53,7 +55,26 @@ async def _override_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+class FakeStorageService(IStorageService):
+    """In-memory fake storage for tests — no external dependencies."""
+
+    def __init__(self):
+        self._store: dict[str, bytes] = {}
+
+    async def upload(self, file_data: bytes, file_name: str, content_type: str, folder: str = "") -> StoredFile:
+        key = f"{folder}/{file_name}" if folder else file_name
+        self._store[key] = file_data
+        return StoredFile(file_path=key, file_url=f"/fake/{key}", file_size=len(file_data), content_type=content_type)
+
+    async def delete(self, file_path: str) -> None:
+        self._store.pop(file_path, None)
+
+    async def get_url(self, file_path: str) -> str:
+        return f"/fake/{file_path}"
+
+
 app.dependency_overrides[get_async_db_session] = _override_db
+app.dependency_overrides[get_storage_service] = FakeStorageService
 
 
 @pytest_asyncio.fixture

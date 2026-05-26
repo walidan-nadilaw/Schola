@@ -17,6 +17,11 @@ class UpdateSubmissionRequest(BaseModel):
     form_data: dict[str, Any] | list[Any] | None = None
 
 
+class SubmitRequest(BaseModel):
+    verifiers: list[str]  # UUIDs of verifiers in order (last = signer)
+    is_ordered_verification: bool = True
+
+
 # -- Responses --
 
 

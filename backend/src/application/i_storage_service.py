@@ -34,3 +34,8 @@ class IStorageService(ABC):
     @abstractmethod
     async def get_url(self, file_path: str) -> str:
         """Get a public or pre-signed URL for a stored file."""
+
+    @property
+    def is_local(self) -> bool:
+        """Whether files are stored on the local filesystem."""
+        return False
