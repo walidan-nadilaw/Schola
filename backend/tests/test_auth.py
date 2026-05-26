@@ -111,3 +111,30 @@ async def test_me_with_token(client: AsyncClient):
     resp = await client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
     assert resp.json()["data"]["email"] == "me@apps.ipb.ac.id"
+
+
+@pytest.mark.asyncio
+async def test_login_nonexistent_email(client: AsyncClient):
+    resp = await client.post("/auth/login", json={"email": "nobody@apps.ipb.ac.id", "password": "test123"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_does_not_crash(client: AsyncClient):
+    await client.post("/auth/register", json={"email": "logouttest@apps.ipb.ac.id", "password": "test123"})
+    login = await client.post("/auth/login", json={"email": "logouttest@apps.ipb.ac.id", "password": "test123"})
+    token = login.json()["data"]["token"]
+    resp = await client.post("/auth/logout", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code in (200, 204)
+
+
+@pytest.mark.asyncio
+async def test_register_invalid_role(client: AsyncClient):
+    resp = await client.post("/auth/register", json={"email": "badrole@apps.ipb.ac.id", "password": "test123", "role": "superadmin"})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_register_missing_password(client: AsyncClient):
+    resp = await client.post("/auth/register", json={"email": "nopass@apps.ipb.ac.id"})
+    assert resp.status_code == 422

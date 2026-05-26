@@ -135,3 +135,44 @@ async def test_dashboard_operator_sees_all(client: AsyncClient):
     data = resp.json()["data"]
     assert data["total_submissions"] >= 1
     assert data["pending_verifications"] == 0
+
+@pytest.mark.asyncio
+async def test_dashboard_dosen_sees_pending_verifications(client: AsyncClient):
+    """Dosen assigned as verifier should see pending count."""
+    from tests.conftest import engine
+
+    # Create operator + template
+    op_email = "dash_d_op@apps.ipb.ac.id"
+    await _register_and_login(client, op_email)
+    await _promote_role(op_email, "OPERATOR_LEMBAGA")
+    op_resp = await client.post("/auth/login", json={"email": op_email, "password": "pass123"})
+    op_h = {"Authorization": f"Bearer {op_resp.json()['data']['token']}"}
+
+    tpl = await client.post("/templates/", headers=op_h, json={
+        "letter_type": "Surat Aktif",
+        "fields": [{"id": "nama", "label": "Nama", "type": "text", "required": True}],
+    })
+    tpl_id = tpl.json()["data"]["id"]
+
+    # Register dosen
+    dosen_email = "dash_d_dsn@apps.ipb.ac.id"
+    await _register_and_login(client, dosen_email)
+    await _promote_role(dosen_email, "DOSEN_PEJABAT")
+    dosen_resp = await client.post("/auth/login", json={"email": dosen_email, "password": "pass123"})
+    dosen_id = dosen_resp.json()["data"]["user"]["id"]
+    dosen_h = {"Authorization": f"Bearer {dosen_resp.json()['data']['token']}"}
+
+    # Mahasiswa creates and submits with dosen as verifier
+    mhs_h = await _auth_header(client, "dash_d_mhs@apps.ipb.ac.id")
+    draft = await client.post("/submissions/", headers=mhs_h, json={
+        "template_id": tpl_id, "form_data": {"nama": "Test"},
+    })
+    sub_id = draft.json()["data"]["id"]
+    await client.post(f"/submissions/{sub_id}/submit", headers=mhs_h, json={
+        "verifiers": [dosen_id],
+    })
+
+    # Dosen dashboard should show pending verifications
+    resp = await client.get("/dashboard/stats", headers=dosen_h)
+    assert resp.status_code == 200
+    assert resp.json()["data"]["pending_verifications"] == 1

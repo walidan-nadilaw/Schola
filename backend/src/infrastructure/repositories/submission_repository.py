@@ -40,7 +40,22 @@ class SubmissionRepository(ISubmissionRepository):
         return row.to_domain()
 
     async def update(self, entity: Submission) -> Submission:
+        # Delete old verifiers and attachments, then re-insert
+        await self.db.execute(
+            delete(SubmissionVerifierTable).where(
+                SubmissionVerifierTable.submission_id == entity.id
+            )
+        )
+        await self.db.execute(
+            delete(AttachmentTable).where(
+                AttachmentTable.submission_id == entity.id
+            )
+        )
         row = SubmissionTable.from_domain(entity)
+        for v in entity.verifiers:
+            row.verifiers.append(SubmissionVerifierTable.from_domain(v))
+        for a in entity.attachments:
+            row.attachments.append(AttachmentTable.from_domain(a))
         merged = await self.db.merge(row)
         await self.db.commit()
         await self.db.refresh(merged, attribute_names=["verifiers", "attachments"])

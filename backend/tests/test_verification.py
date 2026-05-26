@@ -209,3 +209,33 @@ async def test_reject_flow(client: AsyncClient):
     # submission is now rejected
     sub_resp = await client.get(f"/submissions/{sub_id}", headers=mhs_h)
     assert sub_resp.json()["data"]["status"] == "rejected"
+
+
+# -- Operator blocked --
+
+
+@pytest.mark.asyncio
+async def test_operator_blocked_from_verification(client: AsyncClient):
+    """Operators manage templates, not verify submissions."""
+    op_email = "verif_blocked@apps.ipb.ac.id"
+    await _register_and_login(client, op_email)
+    await _promote_role(op_email, "OPERATOR_LEMBAGA")
+    op_resp = await client.post("/auth/login", json={"email": op_email, "password": "pass123"})
+    op_h = {"Authorization": f"Bearer {op_resp.json()['data']['token']}"}
+
+    resp = await client.get("/verifications/", headers=op_h)
+    assert resp.status_code == 403
+
+
+# -- Reject without reason --
+
+
+@pytest.mark.asyncio
+async def test_reject_without_reason_fails(client: AsyncClient):
+    _, dosen_h, sub_id, _ = await _setup_submission_with_verifier(client)
+    resp = await client.post(
+        "/verifications/verify",
+        headers=dosen_h,
+        json={"submission_id": sub_id, "action": "rejected"},
+    )
+    assert resp.status_code == 400
