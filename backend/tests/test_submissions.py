@@ -148,7 +148,7 @@ async def test_submit_with_verifiers(client: AsyncClient):
             {"e": dosen_email},
         )
     dosen_resp = await client.post("/auth/login", json={"email": dosen_email, "password": "pass123"})
-    dosen_id = dosen_resp.json()["data"]["id"]
+    dosen_id = dosen_resp.json()["data"]["user"]["id"]
 
     # 3. Mahasiswa creates draft
     mhs_h = await _auth_header(client, "sub_submit_mhs@apps.ipb.ac.id")
@@ -198,7 +198,7 @@ async def test_submit_missing_required_field(client: AsyncClient):
             {"e": dosen_email},
         )
     dosen_resp = await client.post("/auth/login", json={"email": dosen_email, "password": "pass123"})
-    dosen_id = dosen_resp.json()["data"]["id"]
+    dosen_id = dosen_resp.json()["data"]["user"]["id"]
 
     mhs_h = await _auth_header(client, "sub_val_mhs@apps.ipb.ac.id")
     draft = await client.post("/submissions/", headers=mhs_h, json={
@@ -243,6 +243,6 @@ async def test_submit_nonexistent_verifier(client: AsyncClient):
     sub_id = draft.json()["data"]["id"]
 
     resp = await client.post(f"/submissions/{sub_id}/submit", headers=mhs_h, json={
-        "verifiers": ["00000000-0000-0000-0000-000000000000"],
+        "verifiers": ["00000000-0000-0000-0000-000000000099"],
     })
     assert resp.status_code == 404

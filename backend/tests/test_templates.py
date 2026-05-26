@@ -126,6 +126,6 @@ async def test_full_template_crud_flow(client: AsyncClient):
     delete = await client.delete(f"/templates/{tpl_id}", headers=op_h)
     assert delete.status_code in (200, 204)
 
-    # Verify inactive
+    # Verify inactive (soft-deleted templates are excluded from GET)
     get2 = await client.get(f"/templates/{tpl_id}", headers=op_h)
-    assert get2.json()["data"]["is_active"] is False
+    assert get2.status_code == 404

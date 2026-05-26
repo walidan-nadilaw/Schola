@@ -125,7 +125,7 @@ async def create_submission(
 
 
 @router.post(
-    "/{submission_id}/submit",
+    "/{submission_id:path}/submit",
     response_model=HTTPDataResponse[SubmissionResponse],
     responses={
         400: {"model": HTTPErrorResponse},
