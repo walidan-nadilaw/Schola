@@ -241,6 +241,9 @@ py -m py_compile src/features/submissions/schemas.py
 py -m py_compile src/features/submissions/use_case.py
 py -m py_compile src/features/submissions/router.py
 
+# Run all tests (71 tests across 9 feature slices)
+poetry run pytest
+
 # Run the server and test via /docs
 uvicorn src.app:app --reload
 ```

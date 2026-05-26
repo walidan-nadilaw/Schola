@@ -140,8 +140,10 @@ Run the unit and integration test suite using `pytest`:
 
 ```bash
 # Set up test database or ensure existing DB is accessible via .env, then run:
-pytest
+poetry run pytest
 ```
+
+71 tests covering all 9 feature slices, including full submit/verify flows, file upload/download/delete, role-based access control, and R2 storage.
 
 ---
 
@@ -284,9 +286,9 @@ When the server is running, interactive docs are available at:
 | Prefix | Feature | Description | Auth Roles |
 |---|---|---|---|
 | `/auth` | Authentication | Register, login, logout, me profile | Public / Authenticated |
-| `/users` | Users Management | List, get, create, update, and soft-delete users | Authenticated (Read) / Operator+ (Write) |
+| `/users` | Users Management | List (with search/filter), get, create, update, and soft-delete users | Authenticated (Read) / Operator+ (Write) |
 | `/templates` | Form Templates | Create, update, soft-delete, list and get form templates | Public (Read) / Operator+ (Write) |
-| `/submissions` | Submissions | Student document submissions and approval pipeline lifecycle | Mahasiswa (Create/Update) / Authenticated (List/Detail) |
+| `/submissions` | Submissions | Draft creation, submit with verifier assignment + form validation, CRUD | Mahasiswa (Create/Update) / Authenticated (List/Detail) |
 | `/verifications` | Verification | Verifier pipeline: list pending, approve/reject with HMAC e-signature | Dosen/Pejabat |
 | `/files` | File Attachments | Upload, download, and delete supporting documents (R2 or local) | Authenticated |
 | `/notifications` | Notifications | List and mark notifications as read | Authenticated |

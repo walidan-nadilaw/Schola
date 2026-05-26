@@ -42,7 +42,7 @@ Core letter request lifecycle: draft -> submitted -> approved/rejected.
 - `GET /submissions/{id}` - Get full detail with verifiers & attachments
 - `PUT /submissions/{id}` - Update draft/rejected submission
 - `DELETE /submissions/{id}` - Delete draft submission
-- `POST /submissions/{id}/submit` - Finalize draft: validate form fields, assign verifiers, submit
+- `POST /submissions/{id}/submit` - Finalize draft: validate form fields, assign verifiers, submit to pipeline
 
 ### 5. Verification (`src/features/verification/`)
 
@@ -116,7 +116,7 @@ Public FAQ page, operator-managed.
 
 ## Build Order
 
-All features complete:
+All features complete (71 tests):
 
 ```
 1. Auth             2. Users            3. Templates
