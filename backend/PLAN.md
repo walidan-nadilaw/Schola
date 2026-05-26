@@ -123,3 +123,43 @@ All features complete (71 tests):
 4. Submissions      5. Verification     6. Files
 7. Notifications    8. Dashboard        9. FAQs
 ```
+
+---
+
+## Optimization Opportunities
+
+Evaluated May 2026. Prioritized by impact vs effort.
+
+### High Priority
+
+| # | Area | Issue | Fix |
+|---|------|-------|-----|
+| 1 | **DB connection pool** | `engine` in `db.py` has no `pool_size` or `max_overflow` set. Under load, connections may exhaust. | Set `pool_size=10, max_overflow=20, pool_recycle=3600` |
+| 2 | **R2 HTTP client** | `R2StorageService` creates a new `httpx.AsyncClient()` per request. Adds TCP handshake overhead on every upload/download/delete. | Create a shared `httpx.AsyncClient` instance (class-level) with connection pooling |
+| 3 | **User list fetches all** | `ListUsersUseCase` fetches all users then filters/slices in Python. With 10K+ users, this loads entire table into memory. | Add `find_all_filtered()` to `IUserRepository` with server-side `WHERE` clauses and `LIMIT/OFFSET` |
+
+### Medium Priority
+
+| # | Area | Issue | Fix |
+|---|------|-------|-----|
+| 4 | **Dashboard aggregations** | `GetDashboardStatsUseCase` loads all submissions then counts by status in Python. For operator (sees all), this fetches every row. | Use SQL `COUNT` + `GROUP BY status` query in a new repository method `count_by_status()` |
+| 5 | **Notification ordering** | `find_by_user_id` returns unordered results; use case sorts in Python with `created_at`. | Add `ORDER BY created_at DESC` in the repository query |
+| 6 | **Submission update delete-reinsert** | `update()` in `SubmissionRepository` deletes all verifiers/attachments then re-inserts them. Works but does extra round-trips. | Use SQLAlchemy `merge` with `cascade="merge"` on relationships, or use `session.merge()` with proper cascade config |
+| 7 | **No DB index on `submission_verifiers.verifier_id`** | `find_pending_verifications` joins and filters by `verifier_id` but the column already has `index=True`. Verified OK. | (Already indexed) |
+
+### Low Priority
+
+| # | Area | Issue | Fix |
+|---|------|-------|-----|
+| 8 | **Activity log no retention** | `activity_logs` table has no cleanup policy. Will grow unbounded in production. | Add TTL job or partition by month; keep last 90 days |
+| 9 | **Template fields schema validation** | `fields` column is JSONB with no structural validation beyond template create/update. Malformed fields data could cause runtime errors in form validation. | Add Pydantic model for field schema and validate on write |
+| 10 | **CORS allows `*` as fallback** | When `FRONTEND_BASE_URL` is unset, CORS allows all origins. Fine for dev, risky in production. | Enforce explicit `FRONTEND_BASE_URL` in production mode |
+| 11 | **Local file storage path traversal** | `LocalStorageService` stores files under `uploads/` but does not sanitize the `file_path` in `delete()`. Path traversal via `../../etc/passwd` is restricted because file_path comes from our own UUID generation, not user input. | Low risk; add `os.path.basename()` guard as defense-in-depth |
+
+### Not Recommended
+
+| # | Idea | Reason |
+|---|------|--------|
+| - | Add Redis caching layer | Over-engineering for current scale. Revisit when DB hit rate becomes a bottleneck. |
+| - | Switch to asyncpg connection pool directly | SQLAlchemy pool management is sufficient; no measurable gain. |
+| - | Add Celery/background workers | Notification creation is fast enough inline. Revisit when email sending is enabled. |
