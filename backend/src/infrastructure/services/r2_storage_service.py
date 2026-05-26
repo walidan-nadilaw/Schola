@@ -15,9 +15,10 @@ class R2StorageService(IStorageService):
     """
     File storage backed by Cloudflare R2 using raw S3-compatible HTTP API.
 
-    Uses httpx (already a project dependency) instead of boto3 to keep
-    the dependency footprint minimal.
+    Uses a shared httpx client for connection pooling across requests.
     """
+
+    _client: httpx.AsyncClient | None = None
 
     def __init__(self) -> None:
         self._account_id = settings.R2_ACCOUNT_ID
@@ -26,6 +27,15 @@ class R2StorageService(IStorageService):
         self._bucket = settings.R2_BUCKET_NAME
         self._public_url = settings.R2_PUBLIC_URL.rstrip("/")
         self._endpoint = f"https://{self._account_id}.r2.cloudflarestorage.com"
+
+    @classmethod
+    def _get_client(cls) -> httpx.AsyncClient:
+        if cls._client is None:
+            cls._client = httpx.AsyncClient(
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=20),
+                timeout=httpx.Timeout(30.0),
+            )
+        return cls._client
 
     def _sign_request(
         self,
@@ -111,13 +121,13 @@ class R2StorageService(IStorageService):
         }
         headers = self._sign_request("PUT", path, headers, payload_hash)
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.put(
-                f"{self._endpoint}{path}",
-                content=file_data,
-                headers=headers,
-            )
-            resp.raise_for_status()
+        client = self._get_client()
+        resp = await client.put(
+            f"{self._endpoint}{path}",
+            content=file_data,
+            headers=headers,
+        )
+        resp.raise_for_status()
 
         return StoredFile(
             file_path=key,
@@ -135,12 +145,12 @@ class R2StorageService(IStorageService):
         }
         headers = self._sign_request("DELETE", path, headers, payload_hash)
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.delete(
-                f"{self._endpoint}{path}",
-                headers=headers,
-            )
-            resp.raise_for_status()
+        client = self._get_client()
+        resp = await client.delete(
+            f"{self._endpoint}{path}",
+            headers=headers,
+        )
+        resp.raise_for_status()
 
     async def get_url(self, file_path: str) -> str:
         if self._public_url:

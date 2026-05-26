@@ -1,4 +1,4 @@
-"""Tests for R2StorageService — direct, no FastAPI client, real R2 bucket."""
+"""Tests for R2StorageService - direct, no FastAPI client, real R2 bucket."""
 
 import pytest
 import pytest_asyncio
@@ -8,8 +8,12 @@ from src.infrastructure.services.r2_storage_service import R2StorageService
 
 @pytest_asyncio.fixture
 async def storage():
-    """Real R2 storage service connected to schola-dev bucket."""
-    return R2StorageService()
+    """Real R2 storage connected to schola-dev bucket with cleanup."""
+    svc = R2StorageService()
+    yield svc
+    if R2StorageService._client is not None:
+        await R2StorageService._client.aclose()
+        R2StorageService._client = None
 
 
 @pytest.mark.asyncio

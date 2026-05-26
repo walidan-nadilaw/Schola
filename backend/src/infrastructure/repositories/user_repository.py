@@ -97,3 +97,43 @@ class UserRepository(IUserRepository):
             return
         entity_ids = [e.id for e in entities]
         await self.deleteAllById(entity_ids)
+
+    # --- Domain-specific queries ---
+
+    async def find_all_filtered(
+        self,
+        search: str | None = None,
+        role: str | None = None,
+        department: str | None = None,
+        page: int = 1,
+        limit: int = 20,
+    ) -> tuple[list[User], int]:
+        query = select(UserTable)
+        count_q = select(func.count()).select_from(UserTable)
+
+        if search:
+            q = f"%{search}%"
+            query = query.where(
+                UserTable.email.ilike(q)
+                | UserTable.nim.ilike(q)
+                | UserTable.nip.ilike(q)
+            )
+            count_q = count_q.where(
+                UserTable.email.ilike(q)
+                | UserTable.nim.ilike(q)
+                | UserTable.nip.ilike(q)
+            )
+        if role:
+            query = query.where(UserTable.role == role)
+            count_q = count_q.where(UserTable.role == role)
+        if department:
+            q = f"%{department}%"
+            query = query.where(UserTable.departemen.ilike(q))
+            count_q = count_q.where(UserTable.departemen.ilike(q))
+
+        total = (await self.db.execute(count_q)).scalar_one()
+
+        offset = (page - 1) * limit
+        result = await self.db.execute(query.offset(offset).limit(limit))
+        rows = result.scalars().all()
+        return [row.to_user() for row in rows], int(total)
