@@ -1,0 +1,7 @@
+# ── PostgreSQL database only ─────────────────────────────────────────────────
+FROM postgres:16-alpine
+
+# Custom init scripts can be placed in /docker-entrypoint-initdb.d/
+# COPY init.sql /docker-entrypoint-initdb.d/
+
+EXPOSE 5432

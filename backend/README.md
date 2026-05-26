@@ -84,100 +84,79 @@ backend/
 
 ### Prerequisites
 
-- **Python 3.10+**
-- **PostgreSQL 16** running locally (or via Docker)
-- **pip** or **Poetry**
+- **Python 3.10+** & **Poetry** (or pip)
+- **PostgreSQL 16** (via Docker or local install)
 
 ---
 
-### Local Setup
+### Option A: Docker (full stack, zero local deps)
 
-**1. Clone and enter the backend directory**
+From the **repo root**, one command:
+
+```bash
+docker compose up --build -d
+```
+
+This starts PostgreSQL + API, runs migrations, and seeds demo data. API at <http://localhost:8000>.
+
+```bash
+docker compose logs -f api    # tail logs
+docker compose down           # stop
+docker compose down -v        # stop + wipe DB
+docker compose up --build -d  # rebuild after changes
+```
+
+Demo accounts: `admin@ipb.ac.id` / `admin123`, `user1@apps.ipb.ac.id` / `user123`, etc.
+
+---
+
+### Option B: Local dev (hot reload, Poetry)
+
+**1. Start PostgreSQL via Docker (db only)**
+
+```bash
+# From the repo root
+docker compose up -d db
+```
+
+**2. Install dependencies**
 
 ```bash
 cd backend
+poetry install
 ```
 
-**2. Create a virtual environment and install dependencies**
-
-```bash
-python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-
-# macOS/Linux
-source .venv/bin/activate
-
-pip install -r requirements.txt
-```
-
-**3. Configure environment variables**
+**3. Configure environment**
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your local values — see [Environment Variables](#environment-variables) for all keys.
+The defaults in `.env.example` match the Docker DB. Change secrets for production.
 
-**4. Run database migrations**
-
-```bash
-python -m alembic upgrade head
-```
-
-**5. Start the development server**
+**4. Run migrations**
 
 ```bash
-uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
+poetry run alembic upgrade head
 ```
 
-The API is now live at **<http://localhost:8000>**.
-
-**6. Running Tests**
-
-Run the unit and integration test suite using `pytest`:
+**5. Start dev server (hot reload)**
 
 ```bash
-# Set up test database or ensure existing DB is accessible via .env, then run:
-poetry run pytest
+poetry run uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
-71 tests covering all 9 feature slices, including full submit/verify flows, file upload/download/delete, role-based access control, and R2 storage.
+API at <http://localhost:8000>, docs at <http://localhost:8000/docs>.
 
----
-
-### Docker Setup
-
-The easiest way to run the full stack (API + PostgreSQL) is via Docker Compose from the **repo root**:
+**6. Run tests**
 
 ```bash
-# From the project root (one level above backend/)
-docker compose up --build -d
+poetry run pytest                          # all 71 tests
+poetry run pytest tests/e2e                # end-to-end flow only
+poetry run pytest -k "test_register"       # single test
 ```
 
-This will:
-
-1. Start a PostgreSQL 16 container with a persistent named volume
-2. Build and start the API container
-3. Run `alembic upgrade head` before the server starts
-4. Auto-seed demo data on first boot (admin@ipb.ac.id / admin123 + 5 test users)
-
-**Common commands:**
-
-```bash
-# View API logs
-docker compose logs -f api
-
-# Stop all containers
-docker compose down
-
-# Stop and wipe the database volume
-docker compose down -v
-
-# Rebuild after code changes
-docker compose up --build -d
-```
+Tests use a real PostgreSQL (same DB as local dev) with `NullPool` for isolation. Tables are created once and truncated between tests.
 
 ---
 
@@ -217,26 +196,17 @@ Copy `.env.example` to `.env` and fill in the values. **Required** variables wil
 
 ## Database & Migrations
 
-This project uses **Alembic** for schema migrations. All commands should be run from the `backend/` directory.
+This project uses **Alembic** for schema migrations. Run all commands from `backend/` with `poetry run`:
 
 ```bash
-# Check current migration state
-python -m alembic current
-
-# Apply all pending migrations
-python -m alembic upgrade head
-
-# Roll back one migration
-python -m alembic downgrade -1
-
-# Autogenerate a new migration after model changes
-python -m alembic revision --autogenerate -m "Add my_table"
-
-# View migration history
-python -m alembic history
+poetry run alembic current                    # check current state
+poetry run alembic upgrade head               # apply all pending
+poetry run alembic downgrade -1               # roll back one
+poetry run alembic revision --autogenerate -m "Add my_table"  # generate
+poetry run alembic history                    # view history
 ```
 
-> **Tip**: The migration environment reads `DATABASE_URL` directly from your `.env` via `src.core.config`. No need to set `sqlalchemy.url` in `alembic.ini`.
+> The migration env reads `DATABASE_URL` from `src.core.config` (your `.env` file). No need to edit `alembic.ini`.
 
 ### Current Tables
 
@@ -255,19 +225,15 @@ python -m alembic history
 
 ## Running the Server
 
-**Development** (with hot reload):
-
 ```bash
-uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
+# Development (hot reload)
+poetry run uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
+
+# Production (multi-worker)
+poetry run uvicorn src.app:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-**Production** (multi-worker):
-
-```bash
-uvicorn src.app:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-Or via Docker — see [Docker Setup](#docker-setup).
+Or via Docker — see [Option A](#option-a-docker-full-stack-zero-local-deps).
 
 ---
 
