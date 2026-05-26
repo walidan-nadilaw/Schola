@@ -22,26 +22,18 @@ class GetDashboardStatsUseCase:
         self._log_repo = log_repo
 
     async def execute(self, user: User) -> DashboardStatsResponse:
-        # ── Get relevant submissions based on role ──
+        # ── Counts by status ──
         if user.role == UserRole.OPERATOR_LEMBAGA:
-            subs = list(await self._sub_repo.findAll())
+            counts = await self._sub_repo.count_by_status()
             pending = 0
+            total = sum(counts.values())
         else:
-            from itertools import chain
-
-            own = list(await self._sub_repo.find_by_submitter_id(user.id))
-            verified = await self._sub_repo.find_by_verifier_id(user.id)
-            # merge, deduplicate by id
-            seen = {s.id: s for s in chain(own, verified)}
-            subs = list(seen.values())
-
-            # pending verifications = assigned as verifier + status is pending
+            counts = await self._sub_repo.count_by_status(
+                submitter_id=user.id, verifier_id=user.id
+            )
             pending_subs = await self._sub_repo.find_pending_verifications(user.id)
             pending = len(pending_subs)
-
-        # ── Counts by status ──
-        def _count(status: SubmissionStatus) -> int:
-            return sum(1 for s in subs if s.status == status)
+            total = sum(counts.values())
 
         # ── Recent activity ──
         logs = await self._log_repo.find_by_user_id(user.id)
@@ -57,11 +49,11 @@ class GetDashboardStatsUseCase:
         ]
 
         return DashboardStatsResponse(
-            total_submissions=len(subs),
-            draft_submissions=_count(SubmissionStatus.DRAFT),
-            submitted_submissions=_count(SubmissionStatus.SUBMITTED),
-            approved_submissions=_count(SubmissionStatus.APPROVED),
-            rejected_submissions=_count(SubmissionStatus.REJECTED),
+            total_submissions=total,
+            draft_submissions=counts.get("draft", 0),
+            submitted_submissions=counts.get("submitted", 0),
+            approved_submissions=counts.get("approved", 0),
+            rejected_submissions=counts.get("rejected", 0),
             pending_verifications=pending,
             recent_activity=activity,
         )

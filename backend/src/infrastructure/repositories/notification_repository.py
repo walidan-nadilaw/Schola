@@ -104,7 +104,9 @@ class NotificationRepository(INotificationRepository):
 
     async def find_by_user_id(self, user_id: UUID) -> Iterable[Notification]:
         result = await self.db.execute(
-            select(NotificationTable).where(NotificationTable.user_id == user_id)
+            select(NotificationTable)
+            .where(NotificationTable.user_id == user_id)
+            .order_by(NotificationTable.created_at.desc())
         )
         rows = result.scalars().all()
         return [row.to_domain() for row in rows]

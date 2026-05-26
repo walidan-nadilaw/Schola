@@ -33,10 +33,7 @@ class ListNotificationsUseCase:
 
     async def execute(self, user_id: UUID) -> list[NotificationResponse]:
         notifications = await self._repo.find_by_user_id(user_id)
-        sorted_list = sorted(
-            notifications, key=lambda n: n.created_at or _utcnow(), reverse=True
-        )
-        return [_to_response(n) for n in sorted_list]
+        return [_to_response(n) for n in notifications]
 
 
 class MarkAsReadUseCase:

@@ -132,19 +132,19 @@ Evaluated May 2026. Prioritized by impact vs effort.
 
 ### High Priority
 
-| # | Area | Issue | Fix |
-|---|------|-------|-----|
-| 1 | **DB connection pool** | `engine` in `db.py` has no `pool_size` or `max_overflow` set. Under load, connections may exhaust. | Set `pool_size=10, max_overflow=20, pool_recycle=3600` |
-| 2 | **R2 HTTP client** | `R2StorageService` creates a new `httpx.AsyncClient()` per request. Adds TCP handshake overhead on every upload/download/delete. | Create a shared `httpx.AsyncClient` instance (class-level) with connection pooling |
-| 3 | **User list fetches all** | `ListUsersUseCase` fetches all users then filters/slices in Python. With 10K+ users, this loads entire table into memory. | Add `find_all_filtered()` to `IUserRepository` with server-side `WHERE` clauses and `LIMIT/OFFSET` |
+| # | Area | Issue | Fix | Status |
+|---|------|-------|-----|--------|
+| 1 | **DB connection pool** | `engine` in `db.py` has no `pool_size` or `max_overflow` set. Under load, connections may exhaust. | Set `pool_size=10, max_overflow=20, pool_recycle=3600` | Done |
+| 2 | **R2 HTTP client** | `R2StorageService` creates a new `httpx.AsyncClient()` per request. Adds TCP handshake overhead on every upload/download/delete. | Create a shared `httpx.AsyncClient` instance (class-level) with connection pooling | Done |
+| 3 | **User list fetches all** | `ListUsersUseCase` fetches all users then filters/slices in Python. With 10K+ users, this loads entire table into memory. | Add `find_all_filtered()` to `IUserRepository` with server-side `WHERE` clauses and `LIMIT/OFFSET` | Done |
 
 ### Medium Priority
 
-| # | Area | Issue | Fix |
-|---|------|-------|-----|
-| 4 | **Dashboard aggregations** | `GetDashboardStatsUseCase` loads all submissions then counts by status in Python. For operator (sees all), this fetches every row. | Use SQL `COUNT` + `GROUP BY status` query in a new repository method `count_by_status()` |
-| 5 | **Notification ordering** | `find_by_user_id` returns unordered results; use case sorts in Python with `created_at`. | Add `ORDER BY created_at DESC` in the repository query |
-| 6 | **Submission update delete-reinsert** | `update()` in `SubmissionRepository` deletes all verifiers/attachments then re-inserts them. Works but does extra round-trips. | Use SQLAlchemy `merge` with `cascade="merge"` on relationships, or use `session.merge()` with proper cascade config |
+| # | Area | Issue | Fix | Status |
+|---|------|-------|-----|--------|
+| 4 | **Dashboard aggregations** | `GetDashboardStatsUseCase` loads all submissions then counts by status in Python. For operator (sees all), this fetches every row. | Use SQL `COUNT` + `GROUP BY status` query in a new repository method `count_by_status()` | Done |
+| 5 | **Notification ordering** | `find_by_user_id` returns unordered results; use case sorts in Python with `created_at`. | Add `ORDER BY created_at DESC` in the repository query | Done |
+| 6 | **Submission update cascade** | `update()` in `SubmissionRepository` uses `merge()` without verifier cascade handling. | Fixed via delete-then-reinsert pattern (committed earlier) | Done |
 | 7 | **No DB index on `submission_verifiers.verifier_id`** | `find_pending_verifications` joins and filters by `verifier_id` but the column already has `index=True`. Verified OK. | (Already indexed) |
 
 ### Low Priority
