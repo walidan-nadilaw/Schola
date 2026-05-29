@@ -32,6 +32,18 @@ router = APIRouter(prefix="/submissions", tags=["Submissions"])
 
 
 def _to_response(s) -> SubmissionResponse:
+    verifiers_list = []
+    if hasattr(s, "verifiers") and s.verifiers:
+        for v in s.verifiers:
+            verifiers_list.append({
+                "verifier_name": v.verifier_name if hasattr(v, "verifier_name") else None,
+                "verifier_role": v.verifier_role.value if hasattr(v, "verifier_role") and hasattr(v.verifier_role, "value") else (v.verifier_role if hasattr(v, "verifier_role") else None),
+                "status": v.status.value if hasattr(v.status, "value") else v.status,
+                "verified_at": v.verified_at,
+                "comment": v.comment,
+                "signature_hash": v.signature_hash
+            })
+
     return SubmissionResponse(
         id=s.id,
         template_id=str(s.template_id),
@@ -47,6 +59,9 @@ def _to_response(s) -> SubmissionResponse:
         rejected_at=s.rejected_at,
         created_at=s.created_at,
         updated_at=s.updated_at,
+        submitter_name=getattr(s, "submitter_name", None),
+        submitter_nim=getattr(s, "submitter_nim", None),
+        verifiers=verifiers_list,
     )
 
 

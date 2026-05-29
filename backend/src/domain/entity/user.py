@@ -30,11 +30,14 @@ class User:
     id: UUID
     email: str
     hashed_password: str
+    nama: str = ""
     role: UserRole = UserRole.MAHASISWA
     nim: str | None = None
     fakultas: str | None = None
     departemen: str | None = None
     nip: str | None = None
+    program: str | None = None
+    position: str | None = None
     lokasi_id: UUID | None = None
     email_verified_at: datetime.datetime | None = None
     created_at: datetime.datetime | None = None
@@ -57,6 +60,8 @@ class User:
         fakultas: str | None = None,
         departemen: str | None = None,
         nip: str | None = None,
+        program: str | None = None,
+        position: str | None = None,
         lokasi_id: UUID | None = None,
     ) -> Self:
         """Register a new user with domain validation."""
@@ -70,6 +75,8 @@ class User:
             fakultas=fakultas,
             departemen=departemen,
             nip=nip,
+            program=program,
+            position=position,
             lokasi_id=lokasi_id,
             email_verified_at=None,
             created_at=now,

@@ -25,6 +25,7 @@ def _to_user_response(user: User) -> UserResponse:
         id=str(user.id),
         email=user.email,
         role=user.role.value,
+        nama=user.nama,
         nim=user.nim,
         fakultas=user.fakultas,
         departemen=user.departemen,

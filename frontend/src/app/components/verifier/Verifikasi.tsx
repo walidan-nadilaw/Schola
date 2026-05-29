@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Eye, Search, ArrowUpDown, FileText, Download } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Search, ArrowUpDown, FileText, Download, X } from 'lucide-react';
 import { Submission, SubmissionStatus, mapBackendToSubmission } from '../../utils/submissions';
 import { api } from '../../utils/api';
 
@@ -20,7 +20,8 @@ export default function Verifikasi() {
   const loadVerifications = async () => {
     setLoading(true);
     try {
-      const data = await api.get<any[]>('/verifications');
+      const response = await api.get<any>('/verifications');
+      const data = response?.data || [];
       const mapped = Array.isArray(data) ? data.map((s: any) => {
         return new Submission({
           id: s.submission_id,
@@ -62,11 +63,11 @@ export default function Verifikasi() {
     try {
       const response = await api.post<any>('/verifications/verify', {
         submission_id: selectedSubmission.id,
-        status: status,
+        action: status,
         comment: status === 'approved' ? verificationMessage : '',
         rejection_reason: status === 'rejected' ? verificationMessage : ''
       });
-      alert(response.message || `Pengajuan ${selectedSubmission.id} berhasil diproses!`);
+      alert(response?.message || response?.data?.message || `Pengajuan ${selectedSubmission.id} berhasil diproses!`);
       loadVerifications();
     } catch (e: any) {
       alert(`Gagal memproses verifikasi: ${e.message}`);
@@ -90,7 +91,8 @@ export default function Verifikasi() {
   const handleViewDetail = async (submission: Submission) => {
     setLoading(true);
     try {
-      const full = await api.get<any>(`/submissions/${encodeURIComponent(submission.id)}`);
+      const response = await api.get<any>(`/submissions/${encodeURIComponent(submission.id)}`);
+      const full = response?.data || response;
       if (full) {
         setSelectedSubmission(mapBackendToSubmission(full));
         setShowDetailModal(true);
@@ -311,12 +313,29 @@ export default function Verifikasi() {
             onClick={() => {
               setShowDetailModal(false);
               setSelectedSubmission(null);
+              setShowVerificationForm(false);
+              setVerificationAction(null);
+              setVerificationMessage('');
             }}
           ></div>
 
           {/* Modal */}
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
+              {/* Close Button X */}
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setSelectedSubmission(null);
+                  setShowVerificationForm(false);
+                  setVerificationAction(null);
+                  setVerificationMessage('');
+                }}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Tutup"
+              >
+                <X size={20} />
+              </button>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold">Detail Pengajuan</h2>

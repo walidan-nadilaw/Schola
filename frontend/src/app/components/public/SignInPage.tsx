@@ -20,10 +20,12 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
     setError('');
     setLoading(true);
     try {
-      const response = await api.post<{ user: any; token: string; expiresIn: number }>('/auth/login', {
+      const res = await api.post<any>('/auth/login', {
         email: loginEmail,
         password: loginPassword
       });
+      
+      const response = res.data || res;
 
       // Save token to localStorage
       localStorage.setItem('schola_token', response.token);
@@ -31,8 +33,8 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
       // Map and instanciate User class
       const loggedUser = new User({
         id: response.user.id,
-        name: response.user.name,
-        role: response.user.role,
+        name: response.user.nama || response.user.name,
+        role: response.user.role === 'operator' ? 'admin' : response.user.role,
         department: response.user.department || response.user.position || 'Bagian Akademik',
         email: response.user.email,
         nim: response.user.nim,

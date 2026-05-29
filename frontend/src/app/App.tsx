@@ -82,6 +82,21 @@ function AjuanEditPage({ onBack }: { onBack: () => void }) {
   );
 }
 
+function AjuanWrapper() {
+  const location = useLocation();
+  const state = location.state as { preSelectedLetter?: string } | null;
+  return <Ajuan preSelectedLetter={state?.preSelectedLetter} />;
+}
+
+function NavigateToAfterLogin() {
+  const location = useLocation();
+  const state = location.state as { preSelectedLetter?: string } | null;
+  if (state?.preSelectedLetter) {
+    return <Navigate to="/ajuan" state={state} replace />;
+  }
+  return <Navigate to="/beranda" replace />;
+}
+
 // ─── Authenticated shell (sidebar + topbar + routes) ──────────
 function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void }) {
   const navigate = useNavigate();
@@ -96,8 +111,8 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
   // Fetch notifications periodically or on notification menu click
   useEffect(() => {
     if (auth.isLoggedIn) {
-      api.get<any[]>('/notifications')
-        .then(data => setNotifications(data || []))
+      api.get<any>('/notifications')
+        .then(res => setNotifications(res.data || []))
         .catch(err => console.error("Gagal mengambil notifikasi:", err));
     }
   }, [auth.isLoggedIn, showNotifications]);
@@ -149,7 +164,7 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
                               }
                             }
                             // Refresh list
-                            api.get<any[]>('/notifications').then((data) => setNotifications(data || []));
+                            api.get<any>('/notifications').then((res) => setNotifications(res.data || []));
                           }}
                           className="text-xs text-[#007bff] hover:underline font-semibold"
                         >
@@ -170,7 +185,7 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
                               if (!n.is_read) {
                                 await api.post(`/notifications/${n.id}/read`).catch(() => {});
                                 // Refresh list
-                                api.get<any[]>('/notifications').then((data) => setNotifications(data || []));
+                                api.get<any>('/notifications').then((res) => setNotifications(res.data || []));
                               }
                               if (n.action_url) {
                                 navigate(n.action_url);
@@ -239,7 +254,7 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
               />
             } />
 
-            <Route path="/ajuan" element={<Ajuan />} />
+            <Route path="/ajuan" element={<AjuanWrapper />} />
 
             <Route path="/ajuan/edit/*" element={
               <AjuanEditPage onBack={() => navigate('/diajukan')} />
@@ -331,7 +346,7 @@ function AppContent({
         path="/login"
         element={
           auth.isLoggedIn ? (
-            <Navigate to="/beranda" replace />
+            <NavigateToAfterLogin />
           ) : (
             <SignInPage
               onSignIn={onSignIn}

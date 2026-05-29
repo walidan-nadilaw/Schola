@@ -76,12 +76,14 @@ export class SelectedVerifier extends User {
 // Dynamic verifier fetching from backend database
 export const fetchVerifiers = async (): Promise<User[]> => {
   try {
-    const data = await api.get<any[]>('/auth/verifiers');
-    return data.map((u) => new User({
+    const res = await api.get<any>('/users', { params: { role: 'dosen_pejabat', limit: 100 } });
+    const resData = res.data?.data || res.data || res;
+    const data = Array.isArray(resData) ? resData : [];
+    return data.map((u: any) => new User({
       id: u.id,
-      name: u.name,
+      name: u.nama || u.name || u.email.split('@')[0],
       role: u.role,
-      department: u.department || u.position || 'IPB University',
+      department: u.departemen || u.department || u.position || 'IPB University',
       email: u.email,
       nim: u.nim,
       fakultas: u.fakultas,

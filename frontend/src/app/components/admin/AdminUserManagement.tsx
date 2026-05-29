@@ -45,6 +45,7 @@ export default function AdminUserManagement() {
   const roles = [
     { value: 'mahasiswa', label: 'Mahasiswa' },
     { value: 'dosen', label: 'Dosen' },
+    { value: 'pejabat', label: 'Pejabat' },
     { value: 'staff', label: 'Staf Akademik' },
     { value: 'admin', label: 'Administrator' },
   ];
@@ -57,8 +58,21 @@ export default function AdminUserManagement() {
       if (search) params.append('search', search);
       if (roleFilter) params.append('role', roleFilter);
       
-      const response = await api.get<{ data: UserItem[] }>(`/users?${params.toString()}`);
-      setUsers(response.data || []);
+      const response = await api.get<any>(`/users?${params.toString()}`);
+      const rawUsers = response?.data?.data || (Array.isArray(response?.data) ? response.data : []);
+      const mappedUsers = Array.isArray(rawUsers) ? rawUsers.map((u: any) => ({
+        id: u.id,
+        name: u.nama || u.name || '',
+        email: u.email,
+        role: mapBackendRoleToFrontend(u.role || '', u.position || u.jabatan || ''),
+        department: u.departemen || u.department || '',
+        nim: u.nim,
+        fakultas: u.fakultas,
+        program: u.program || u.program_studi || '',
+        nip: u.nip,
+        position: u.position || u.jabatan || '',
+      })) : [];
+      setUsers(mappedUsers);
     } catch (err: any) {
       console.error(err);
       setError('Gagal memuat daftar pengguna.');
@@ -97,13 +111,27 @@ export default function AdminUserManagement() {
     setShowAddModal(true);
   };
 
+  const mapBackendRoleToFrontend = (role: string, position?: string): string => {
+    const r = role.toLowerCase();
+    if (r === 'admin') return 'admin';
+    if (r === 'operator') return 'staff';
+    if (r === 'dosen_pejabat') {
+      const pos = (position || '').toLowerCase();
+      if (pos.includes('pejabat') || pos.includes('dekan') || pos.includes('rektor') || pos.includes('ketua') || pos.includes('kaprodi') || pos.includes('kajur') || pos.includes('wakil')) {
+        return 'pejabat';
+      }
+      return 'dosen';
+    }
+    return 'mahasiswa';
+  };
+
   const handleOpenEdit = (user: UserItem) => {
     setSelectedUser(user);
     setFormData({
       name: user.name || '',
       email: user.email || '',
       password: '', // blank password means no change or handled separately
-      role: user.role || 'mahasiswa',
+      role: user.role,
       department: user.department || '',
       nim: user.nim || '',
       fakultas: user.fakultas || '',
@@ -120,20 +148,20 @@ export default function AdminUserManagement() {
     e.preventDefault();
     try {
       setError('');
-      // Prepare payload with only relevant attributes
+      const mappedRole = formData.role === 'admin' || formData.role === 'staff' ? 'operator' : (formData.role === 'dosen' || formData.role === 'pejabat' ? 'dosen_pejabat' : 'mahasiswa');
       const payload: any = {
-        name: formData.name,
+        nama: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role,
-        department: formData.department || undefined,
+        role: mappedRole,
+        departemen: formData.department || undefined,
       };
 
       if (formData.role === 'mahasiswa') {
         payload.nim = formData.nim || undefined;
         payload.fakultas = formData.fakultas || undefined;
         payload.program = formData.program || undefined;
-      } else if (formData.role === 'dosen' || formData.role === 'staff') {
+      } else if (formData.role === 'dosen' || formData.role === 'pejabat' || formData.role === 'staff') {
         payload.nip = formData.nip || undefined;
         payload.position = formData.position || undefined;
       }
@@ -153,17 +181,12 @@ export default function AdminUserManagement() {
     if (!selectedUser) return;
     try {
       setError('');
-      // Prepare payload with only relevant attributes
+      const mappedRole = formData.role === 'admin' || formData.role === 'staff' ? 'operator' : (formData.role === 'dosen' || formData.role === 'pejabat' ? 'dosen_pejabat' : 'mahasiswa');
       const payload: any = {
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        department: formData.department || null,
+        nama: formData.name,
+        role: mappedRole,
+        departemen: formData.department || null,
       };
-
-      if (formData.password) {
-        payload.password = formData.password;
-      }
 
       if (formData.role === 'mahasiswa') {
         payload.nim = formData.nim || null;
@@ -171,7 +194,7 @@ export default function AdminUserManagement() {
         payload.program = formData.program || null;
         payload.nip = null;
         payload.position = null;
-      } else if (formData.role === 'dosen' || formData.role === 'staff') {
+      } else if (formData.role === 'dosen' || formData.role === 'pejabat' || formData.role === 'staff') {
         payload.nip = formData.nip || null;
         payload.position = formData.position || null;
         payload.nim = null;
@@ -213,11 +236,20 @@ export default function AdminUserManagement() {
       admin: 'bg-red-50 text-red-700 border-red-200',
       mahasiswa: 'bg-blue-50 text-blue-700 border-blue-200',
       dosen: 'bg-purple-50 text-purple-700 border-purple-200',
+      pejabat: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       staff: 'bg-orange-50 text-orange-700 border-orange-200',
     };
+    const labelMap: Record<string, string> = {
+      admin: 'Administrator',
+      mahasiswa: 'Mahasiswa',
+      dosen: 'Dosen',
+      pejabat: 'Pejabat',
+      staff: 'Staf Akademik',
+    };
+    const roleKey = role.toLowerCase();
     return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styleMap[role.toLowerCase()] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
-        {role.charAt(0).toUpperCase() + role.slice(1)}
+      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${styleMap[roleKey] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+        {labelMap[roleKey] || role}
       </span>
     );
   };
@@ -291,12 +323,10 @@ export default function AdminUserManagement() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
+            <table className="w-full text-left border-collapse">              <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Nama & Email</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Peran</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Departemen</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Detail Informasi</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 text-right uppercase tracking-wider">Aksi</th>
                 </tr>
@@ -307,7 +337,7 @@ export default function AdminUserManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${user.role === 'admin' ? 'bg-red-500' : 'bg-blue-500'}`}>
-                          {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                           {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                         </div>
                         <div>
                           <p className="font-bold text-gray-800">{user.name}</p>
@@ -316,7 +346,6 @@ export default function AdminUserManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{user.department || '-'}</td>
                     <td className="px-6 py-4 text-xs text-gray-500">
                       {user.role === 'mahasiswa' && (
                         <div>
@@ -325,7 +354,7 @@ export default function AdminUserManagement() {
                           <p><span className="font-semibold text-gray-700">Fakultas:</span> {user.fakultas || '-'}</p>
                         </div>
                       )}
-                      {(user.role === 'dosen' || user.role === 'staff') && (
+                      {(user.role === 'dosen' || user.role === 'pejabat' || user.role === 'staff') && (
                         <div>
                           <p><span className="font-semibold text-gray-700">NIP:</span> {user.nip || '-'}</p>
                           <p><span className="font-semibold text-gray-700">Jabatan:</span> {user.position || '-'}</p>
@@ -376,6 +405,20 @@ export default function AdminUserManagement() {
 
             <form onSubmit={handleAddSubmit} className="p-6 space-y-4">
               <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Peran (Role)</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#007bff] text-sm"
+                >
+                  {roles.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Lengkap</label>
                 <input
                   type="text"
@@ -411,33 +454,6 @@ export default function AdminUserManagement() {
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#007bff] text-sm"
                     placeholder="********"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Peran (Role)</label>
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#007bff] text-sm"
-                  >
-                    {roles.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Departemen</label>
-                  <input
-                    type="text"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#007bff] text-sm"
-                    placeholder="Ilmu Komputer"
                   />
                 </div>
               </div>
@@ -487,8 +503,8 @@ export default function AdminUserManagement() {
                 </div>
               )}
 
-              {/* Dosen/Staff specific fields */}
-              {(formData.role === 'dosen' || formData.role === 'staff') && (
+              {/* Dosen/Staff/Pejabat specific fields */}
+              {(formData.role === 'dosen' || formData.role === 'pejabat' || formData.role === 'staff') && (
                 <div className="space-y-4 border-t border-gray-150 pt-4">
                   <h4 className="text-sm font-bold text-gray-800">Atribut Kepegawaian</h4>
                   <div className="grid grid-cols-2 gap-4">
@@ -553,6 +569,20 @@ export default function AdminUserManagement() {
 
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
               <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Peran (Role)</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#007bff] text-sm"
+                >
+                  {roles.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Lengkap</label>
                 <input
                   type="text"
@@ -585,32 +615,6 @@ export default function AdminUserManagement() {
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#007bff] text-sm"
                     placeholder="Kosongkan jika tidak diubah"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Peran (Role)</label>
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#007bff] text-sm"
-                  >
-                    {roles.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Departemen</label>
-                  <input
-                    type="text"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#007bff] text-sm"
                   />
                 </div>
               </div>
@@ -657,8 +661,8 @@ export default function AdminUserManagement() {
                 </div>
               )}
 
-              {/* Dosen/Staff specific fields */}
-              {(formData.role === 'dosen' || formData.role === 'staff') && (
+              {/* Dosen/Staff/Pejabat specific fields */}
+              {(formData.role === 'dosen' || formData.role === 'pejabat' || formData.role === 'staff') && (
                 <div className="space-y-4 border-t border-gray-150 pt-4">
                   <h4 className="text-sm font-bold text-gray-800">Atribut Kepegawaian</h4>
                   <div className="grid grid-cols-2 gap-4">

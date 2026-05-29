@@ -37,6 +37,7 @@ class UserResponse(BaseModel):
     id: str
     email: str
     role: str
+    nama: str
     nim: str | None = None
     fakultas: str | None = None
     departemen: str | None = None

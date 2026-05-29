@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Download, Eye, Edit, FileText, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
-import { Submission, SubmissionStatus, fetchAllSubmissions } from '../../utils/submissions';
+import { Search, Download, Eye, Edit, FileText, ChevronLeft, ChevronRight, ArrowUpDown, Trash2 } from 'lucide-react';
+import { Submission, SubmissionStatus, fetchAllSubmissions, deleteSubmissionDraft } from '../../utils/submissions';
 
 interface DiajukanProps {
   onNewSubmission?: () => void;
@@ -49,6 +49,23 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
 
   const handleEdit = (submission: Submission) => {
     onEdit?.(submission.id);
+  };
+
+  const handleDelete = async (submission: Submission) => {
+    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus draft pengajuan "${submission.keperluan}"?`);
+    if (!confirmDelete) return;
+
+    try {
+      setLoading(true);
+      await deleteSubmissionDraft(submission.id);
+      alert('Draft pengajuan berhasil dihapus.');
+      const data = await fetchAllSubmissions();
+      setSubmissions(data);
+    } catch (e: any) {
+      alert(`Gagal menghapus draft: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSort = (column: SortableColumn) => {
@@ -320,6 +337,16 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
                           title="Edit"
                         >
                           <Edit size={18} />
+                        </button>
+                      )}
+
+                      {submission.isDraft() && (
+                        <button
+                          onClick={() => handleDelete(submission)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus Draft"
+                        >
+                          <Trash2 size={18} />
                         </button>
                       )}
 

@@ -110,8 +110,9 @@ export class FormDraft {
 // Helper functions fetching from FastAPI backend
 export const fetchAllFormTemplates = async (): Promise<FormTemplate[]> => {
   try {
-    const data = await api.get<any[]>('/templates');
-    return data.map((t) => new FormTemplate({
+    const res = await api.get<any>('/templates');
+    const list = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
+    return list.map((t: any) => new FormTemplate({
       id: t.id,
       letterType: t.letter_type,
       fields: t.fields || [],
@@ -127,7 +128,8 @@ export const fetchAllFormTemplates = async (): Promise<FormTemplate[]> => {
 
 export const fetchFormTemplateById = async (id: string): Promise<FormTemplate | null> => {
   try {
-    const t = await api.get<any>(`/templates/${id}`);
+    const res = await api.get<any>(`/templates/${id}`);
+    const t = res.data || res;
     return new FormTemplate({
       id: t.id,
       letterType: t.letter_type,
@@ -144,7 +146,7 @@ export const fetchFormTemplateById = async (id: string): Promise<FormTemplate | 
 
 export const createFormTemplate = async (letterType: string, fields: FormField[]): Promise<FormTemplate | null> => {
   try {
-    const t = await api.post<any>('/templates', {
+    const res = await api.post<any>('/templates', {
       letter_type: letterType,
       description: `Formulir pengajuan untuk ${letterType}`,
       fields: fields.map((f) => ({
@@ -158,6 +160,7 @@ export const createFormTemplate = async (letterType: string, fields: FormField[]
       })),
       is_active: true
     });
+    const t = res.data || res;
     return new FormTemplate({
       id: t.id,
       letterType: t.letter_type,
@@ -174,7 +177,7 @@ export const createFormTemplate = async (letterType: string, fields: FormField[]
 
 export const updateFormTemplate = async (id: string, letterType: string, fields: FormField[]): Promise<FormTemplate | null> => {
   try {
-    const t = await api.put<any>(`/templates/${id}`, {
+    const res = await api.put<any>(`/templates/${id}`, {
       letter_type: letterType,
       description: `Formulir pengajuan untuk ${letterType}`,
       fields: fields.map((f) => ({
@@ -188,6 +191,7 @@ export const updateFormTemplate = async (id: string, letterType: string, fields:
       })),
       is_active: true
     });
+    const t = res.data || res;
     return new FormTemplate({
       id: t.id,
       letterType: t.letter_type,

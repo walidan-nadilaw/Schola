@@ -31,16 +31,18 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
     const loadBerandaData = async () => {
       setLoading(true);
       try {
-        const [subList, tplList, statsData, pendingData] = await Promise.all([
+        const isMahasiswa = userRole === 'mahasiswa';
+        const [subList, tplList, statsRes, pendingRes] = await Promise.all([
           fetchAllSubmissions(),
           fetchAllFormTemplates(),
-          api.get<DashboardStats>('/dashboard/stats').catch(() => null),
-          api.get<any[]>('/verifications').catch(() => [])
+          !isMahasiswa ? api.get<any>('/dashboard/stats').catch(() => null) : Promise.resolve(null),
+          !isMahasiswa ? api.get<any>('/verifications').catch(() => null) : Promise.resolve(null)
         ]);
         setSubmissions(subList || []);
         setTemplates(tplList || []);
-        setStats(statsData);
+        setStats(statsRes?.data || statsRes);
 
+        const pendingData = pendingRes?.data || (Array.isArray(pendingRes) ? pendingRes : []);
         const mappedPending = Array.isArray(pendingData) ? pendingData.map((s: any) => {
           return new Submission({
             id: s.submission_id,
@@ -61,7 +63,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
       }
     };
     loadBerandaData();
-  }, []);
+  }, [userRole]);
 
   const allSubmissions = submissions;
 
@@ -79,7 +81,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
         {/* 4 Administrative KPI Cards using live statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <button
-            onClick={() => onSectionChange?.('admin-forms')}
+            onClick={() => onSectionChange?.('admin/forms')}
             className="bg-white border border-gray-200 p-6 rounded-lg hover:border-[#007bff] transition-all text-left shadow-sm hover:shadow"
           >
             <Settings className="text-[#007bff] mb-3" size={32} />
@@ -89,7 +91,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
           </button>
 
           <button
-            onClick={() => onSectionChange?.('admin-submissions')}
+            onClick={() => onSectionChange?.('admin/submissions')}
             className="bg-white border border-gray-200 p-6 rounded-lg hover:border-[#007bff] transition-all text-left shadow-sm hover:shadow"
           >
             <FileText className="text-emerald-500 mb-3" size={32} />
@@ -99,7 +101,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
           </button>
 
           <button
-            onClick={() => onSectionChange?.('admin-panduan')}
+            onClick={() => onSectionChange?.('admin/panduan')}
             className="bg-white border border-gray-200 p-6 rounded-lg hover:border-[#007bff] transition-all text-left shadow-sm hover:shadow"
           >
             <BookOpen className="text-purple-500 mb-3" size={32} />
@@ -109,7 +111,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
           </button>
 
           <button
-            onClick={() => onSectionChange?.('admin-faq')}
+            onClick={() => onSectionChange?.('admin/faq')}
             className="bg-white border border-gray-200 p-6 rounded-lg hover:border-[#007bff] transition-all text-left shadow-sm hover:shadow"
           >
             <HelpCircle className="text-amber-500 mb-3" size={32} />
@@ -129,7 +131,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
                 Pengajuan Terkini
               </h2>
               <button
-                onClick={() => onSectionChange?.('admin-submissions')}
+                onClick={() => onSectionChange?.('admin/submissions')}
                 className="text-xs text-[#007bff] hover:underline font-bold"
               >
                 Lihat Semua
@@ -137,7 +139,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
             </div>
             <div className="divide-y divide-gray-150">
               {submissions.slice(0, 3).map((sub) => (
-                <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-gray-55/35 transition-colors">
                   <div>
                     <p className="font-semibold text-sm text-gray-800">{sub.jenisSurat}</p>
                     <p className="text-xs text-gray-500">Oleh: {sub.submitterName} ({sub.submitterNim})</p>
@@ -161,7 +163,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
                 Template Form Aktif
               </h2>
               <button
-                onClick={() => onSectionChange?.('admin-forms')}
+                onClick={() => onSectionChange?.('admin/forms')}
                 className="text-xs text-[#007bff] hover:underline font-bold"
               >
                 Lihat Semua
@@ -169,7 +171,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
             </div>
             <div className="divide-y divide-gray-150">
               {templates.slice(0, 3).map((tpl) => (
-                <div key={tpl.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                <div key={tpl.id} className="p-4 flex items-center justify-between hover:bg-gray-55/35 transition-colors">
                   <div>
                     <p className="font-semibold text-sm text-gray-800">{tpl.letterType}</p>
                     <p className="text-xs text-gray-500">Jumlah: {tpl.fields.length} Field</p>
@@ -193,7 +195,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
                 Daftar Panduan
               </h2>
               <button
-                onClick={() => onSectionChange?.('admin-panduan')}
+                onClick={() => onSectionChange?.('admin/panduan')}
                 className="text-xs text-[#007bff] hover:underline font-bold"
               >
                 Lihat Semua
@@ -201,7 +203,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
             </div>
             <div className="divide-y divide-gray-150">
               {mockGuides.slice(0, 3).map((guide) => (
-                <div key={guide.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                <div key={guide.id} className="p-4 flex items-center justify-between hover:bg-gray-55/35 transition-colors">
                   <div>
                     <p className="font-semibold text-sm text-gray-800">{guide.title}</p>
                     <p className="text-xs text-gray-500">{guide.steps.length} Langkah Prosedur</p>
@@ -219,7 +221,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
                 FAQ Terdaftar
               </h2>
               <button
-                onClick={() => onSectionChange?.('admin-faq')}
+                onClick={() => onSectionChange?.('admin/faq')}
                 className="text-xs text-[#007bff] hover:underline font-bold"
               >
                 Lihat Semua
@@ -227,7 +229,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
             </div>
             <div className="divide-y divide-gray-150">
               {mockFAQs.slice(0, 3).map((faq) => (
-                <div key={faq.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                <div key={faq.id} className="p-4 flex items-center justify-between hover:bg-gray-55/35 transition-colors">
                   <div>
                     <p className="font-semibold text-sm text-gray-800 truncate max-w-sm">{faq.question}</p>
                     <p className="text-xs text-gray-500 truncate max-w-sm">{faq.answer}</p>
@@ -277,65 +279,67 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
 
       <div className="grid grid-cols-2 gap-6">
         {/* Pending Verification Preview */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-lg">Menunggu Verifikasi</h2>
-              <p className="text-xs text-gray-600 mt-0.5">Pengajuan yang perlu diverifikasi</p>
+        {userRole !== 'mahasiswa' && (
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-lg">Menunggu Verifikasi</h2>
+                <p className="text-xs text-gray-600 mt-0.5">Pengajuan yang perlu diverifikasi</p>
+              </div>
+              <button
+                onClick={() => onSectionChange?.('verifikasi')}
+                className="text-sm text-[#007bff] hover:underline font-medium"
+              >
+                Lihat Semua
+              </button>
             </div>
-            <button
-              onClick={() => onSectionChange?.('verifikasi')}
-              className="text-sm text-[#007bff] hover:underline font-medium"
-            >
-              Lihat Semua
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700">Judul Surat</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700">Tanggal</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {pendingVerifications.slice(0, 3).map((submission) => (
-                  <tr key={submission.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{submission.keperluan}</p>
-                        <p className="text-xs text-gray-500">{submission.jenisSurat}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-xs text-gray-700">
-                        {submission.getFormattedDate(submission.tanggalPengajuan)}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => onViewSubmissionDetail?.(submission.id)}
-                        className="p-1.5 text-[#007bff] hover:bg-blue-50 rounded transition-colors"
-                        title="Lihat Detail"
-                      >
-                        <Eye size={16} />
-                      </button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700">Judul Surat</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700">Tanggal</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {pendingVerifications.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-500">Tidak ada pengajuan yang menunggu verifikasi</p>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {pendingVerifications.slice(0, 3).map((submission) => (
+                    <tr key={submission.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{submission.keperluan}</p>
+                          <p className="text-xs text-gray-500">{submission.jenisSurat}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-xs text-gray-700">
+                          {submission.getFormattedDate(submission.tanggalPengajuan)}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => onViewSubmissionDetail?.(submission.id)}
+                          className="p-1.5 text-[#007bff] hover:bg-blue-50 rounded transition-colors"
+                          title="Lihat Detail"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+            {pendingVerifications.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-sm text-gray-500">Tidak ada pengajuan yang menunggu verifikasi</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Recent Submissions Preview */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <div className={`bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden ${userRole === 'mahasiswa' ? 'col-span-2' : ''}`}>
           <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-lg">Riwayat Pengajuan Terbaru</h2>

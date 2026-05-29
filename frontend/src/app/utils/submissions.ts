@@ -187,11 +187,11 @@ export const mapBackendToSubmission = (s: any): Submission => {
     keperluan: keperluan,
     tanggalPengajuan: s.submitted_at || s.created_at,
     tanggalVerifikasi: s.verified_at,
-    verifierName: s.verifiers && s.verifiers.length > 0 ? s.verifiers[s.verifiers.length - 1].verifier_name : undefined,
+    verifierName: verifiers.length > 0 ? verifiers[verifiers.length - 1].name : undefined,
     status: mapStatusFromBackend(s.status),
     keteranganVerifikator: s.rejection_reason || undefined,
-    submitterName: s.submitter?.name || 'Mahasiswa',
-    submitterNim: s.submitter?.nim || 'NIM',
+    submitterName: s.submitter_name || s.submitter?.name || 'Mahasiswa',
+    submitterNim: s.submitter_nim || s.submitter?.nim || 'NIM',
     formData: s.form_data || {},
     attachments: attachments,
     verifiers: verifiers
@@ -214,7 +214,8 @@ export const fetchAllSubmissions = async (statusFilter?: string): Promise<Submis
 
 export const fetchSubmissionById = async (id: string): Promise<Submission | null> => {
   try {
-    const data = await api.get<any>(`/submissions/${encodeURIComponent(id)}`);
+    const res = await api.get<any>(`/submissions/${encodeURIComponent(id)}`);
+    const data = res.data || res;
     return mapBackendToSubmission(data);
   } catch (e) {
     console.error(`Gagal mengambil detail pengajuan ${id}:`, e);
@@ -223,18 +224,20 @@ export const fetchSubmissionById = async (id: string): Promise<Submission | null
 };
 
 export const createSubmission = async (templateId: string, formData: Record<string, any>): Promise<Submission> => {
-  const data = await api.post<any>('/submissions', {
+  const res = await api.post<any>('/submissions', {
     template_id: templateId,
     form_data: formData
   });
+  const data = res.data || res;
   return mapBackendToSubmission(data);
 };
 
 export const updateSubmissionDraft = async (id: string, formData: Record<string, any>, isOrdered: boolean): Promise<Submission> => {
-  const data = await api.put<any>(`/submissions/${encodeURIComponent(id)}`, {
+  const res = await api.put<any>(`/submissions/${encodeURIComponent(id)}`, {
     form_data: formData,
     is_ordered_verification: isOrdered
   });
+  const data = res.data || res;
   return mapBackendToSubmission(data);
 };
 
@@ -242,15 +245,20 @@ export const deleteSubmissionDraft = async (id: string): Promise<void> => {
   await api.delete(`/submissions/${encodeURIComponent(id)}`);
 };
 
-export const sendFinalizeSubmission = async (id: string, verifiersOrder: string[]): Promise<Submission> => {
-  const data = await api.post<any>(`/submissions/${encodeURIComponent(id)}/finalize`, verifiersOrder);
+export const sendFinalizeSubmission = async (id: string, verifiersOrder: string[], isOrdered: boolean = true): Promise<Submission> => {
+  const res = await api.post<any>(`/submissions/${encodeURIComponent(id)}/submit`, {
+    verifiers: verifiersOrder,
+    is_ordered_verification: isOrdered
+  });
+  const data = res.data || res;
   return mapBackendToSubmission(data);
 };
 
 export const uploadAttachmentForSubmission = async (submissionId: string, file: File): Promise<any> => {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post(`/files/upload`, formData, {
+  const res = await api.post(`/files/upload`, formData, {
     params: { submission_id: submissionId }
   });
+  return res.data || res;
 };

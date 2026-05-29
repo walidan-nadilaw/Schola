@@ -196,7 +196,7 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
     try {
       // Get verifier order ids
       const verifiersOrder = selectedVerifiers.map((v) => v.id);
-      await sendFinalizeSubmission(subId, verifiersOrder);
+      await sendFinalizeSubmission(subId, verifiersOrder, isOrderedVerification);
 
       alert('Pengajuan berhasil difinalisasi dan dikirim ke verifikator!');
       if (onBackToList) {
