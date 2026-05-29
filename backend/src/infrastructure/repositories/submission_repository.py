@@ -21,9 +21,10 @@ class SubmissionRepository(ISubmissionRepository):
         self.db = db
 
     def _query_with_relations(self):
-        """Base query that eager-loads verifiers and attachments."""
+        """Base query that eager-loads verifiers, submitter, and attachments."""
         return select(SubmissionTable).options(
-            selectinload(SubmissionTable.verifiers),
+            selectinload(SubmissionTable.verifiers).selectinload(SubmissionVerifierTable.verifier),
+            selectinload(SubmissionTable.submitter),
             selectinload(SubmissionTable.attachments),
         )
 

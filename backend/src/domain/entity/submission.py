@@ -85,6 +85,7 @@ class SubmissionVerifier:
     signature_timestamp: datetime.datetime | None = None
     created_at: datetime.datetime | None = None
     updated_at: datetime.datetime | None = None
+    verifier_name: str | None = None
 
     def __post_init__(self) -> None:
         if self.created_at is None:
@@ -161,6 +162,8 @@ class Submission:
     attachments: list[Attachment] = field(default_factory=list)
     created_at: datetime.datetime | None = None
     updated_at: datetime.datetime | None = None
+    submitter_name: str | None = None
+    submitter_nim: str | None = None
 
     def __post_init__(self) -> None:
         if self.created_at is None:

@@ -33,8 +33,9 @@ export default function Panduan({ onAjukan }: PanduanProps) {
       try {
         setIsLoading(true);
         // Fetch form templates
-        const templatesData = await api.get<any[]>('/templates');
-        const mappedLetters = (templatesData || []).map((t) => ({
+        const templatesRes = await api.get<any>('/templates');
+        const templatesData = templatesRes.data || [];
+        const mappedLetters = (templatesData || []).map((t: any) => ({
           id: t.id,
           name: t.letter_type,
           description: t.description || `Pengajuan dokumen ${t.letter_type} secara online.`,
@@ -44,7 +45,8 @@ export default function Panduan({ onAjukan }: PanduanProps) {
         setLetterTypes(mappedLetters);
 
         // Fetch FAQs
-        const faqsData = await api.get<any[]>('/faqs');
+        const faqsRes = await api.get<any>('/faqs');
+        const faqsData = faqsRes.data || [];
         setFaqs(faqsData || []);
       } catch (err) {
         console.error("Gagal memuat data panduan:", err);

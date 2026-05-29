@@ -40,3 +40,6 @@ class SubmissionResponse(BaseModel):
     rejected_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+    submitter_name: str | None = None
+    submitter_nim: str | None = None
+    verifiers: list[dict[str, Any]] = []

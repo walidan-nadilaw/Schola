@@ -3,7 +3,7 @@
  * Base URL and token key read from Vite env vars (never hardcoded).
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
 export const TOKEN_KEY = import.meta.env.VITE_TOKEN_KEY ?? 'schola_token';
 
 interface RequestOptions extends RequestInit {

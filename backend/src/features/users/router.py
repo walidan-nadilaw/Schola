@@ -36,10 +36,13 @@ def _to_response(user: User) -> UserResponse:
         id=str(user.id),
         email=user.email,
         role=user.role.value,
+        nama=user.nama,
         nim=user.nim,
         fakultas=user.fakultas,
         departemen=user.departemen,
         nip=user.nip,
+        program=user.program,
+        position=user.position,
         is_email_verified=user.is_email_verified,
         created_at=user.created_at,
     )
@@ -120,11 +123,14 @@ async def create_user(
     user = await uc.execute(
         email=body.email,
         password=body.password,
+        nama=body.nama,
         role=body.role,
         nim=body.nim,
         fakultas=body.fakultas,
         departemen=body.departemen,
         nip=body.nip,
+        program=body.program,
+        position=body.position,
     )
     return HTTPDataResponse(
         status="success",
@@ -150,11 +156,14 @@ async def update_user(
     """(Operator only) Update user attributes."""
     user = await UpdateUserUseCase(UserRepository(db)).execute(
         user_id=user_id,
+        nama=body.nama,
         role=body.role,
         nim=body.nim,
         fakultas=body.fakultas,
         departemen=body.departemen,
         nip=body.nip,
+        program=body.program,
+        position=body.position,
     )
     return HTTPDataResponse(
         status="success",

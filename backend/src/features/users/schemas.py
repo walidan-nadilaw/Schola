@@ -12,19 +12,25 @@ from src.domain.entity.user import UserRole
 class CreateUserRequest(BaseModel):
     email: EmailStr
     password: str
+    nama: str | None = None
     role: UserRole = UserRole.MAHASISWA
     nim: str | None = None
     fakultas: str | None = None
     departemen: str | None = None
     nip: str | None = None
+    program: str | None = None
+    position: str | None = None
 
 
 class UpdateUserRequest(BaseModel):
+    nama: str | None = None
     role: UserRole | None = None
     nim: str | None = None
     fakultas: str | None = None
     departemen: str | None = None
     nip: str | None = None
+    program: str | None = None
+    position: str | None = None
 
 
 # -- Responses --
@@ -34,10 +40,13 @@ class UserResponse(BaseModel):
     id: str
     email: str
     role: str
+    nama: str
     nim: str | None = None
     fakultas: str | None = None
     departemen: str | None = None
     nip: str | None = None
+    program: str | None = None
+    position: str | None = None
     is_email_verified: bool
     created_at: datetime
 

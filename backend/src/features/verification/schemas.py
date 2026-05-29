@@ -27,6 +27,8 @@ class PendingVerificationResponse(BaseModel):
     verifier_order: int | None = None
     verifier_role: str | None = "verifier"
     is_ordered_verification: bool
+    submitter_name: str | None = None
+    submitter_nim: str | None = None
 
 
 class VerifyActionResponse(BaseModel):

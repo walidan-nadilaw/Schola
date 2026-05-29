@@ -20,8 +20,9 @@ export default function AdminFAQManagement() {
   const fetchFaqs = async () => {
     try {
       setIsLoading(true);
-      const data = await api.get<FAQItem[]>('/faqs');
-      setFaqs(data || []);
+      const response = await api.get<any>('/faqs');
+      const rawFaqs = response?.data || (Array.isArray(response) ? response : []);
+      setFaqs(Array.isArray(rawFaqs) ? rawFaqs : []);
     } catch (err) {
       console.error("Gagal mengambil FAQ:", err);
     } finally {

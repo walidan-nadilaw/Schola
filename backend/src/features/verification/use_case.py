@@ -82,6 +82,8 @@ class GetPendingVerificationsUseCase:
                 verifier_order=my_sv.verifier_order,
                 verifier_role=my_sv.verifier_role.value if my_sv.verifier_role else "verifier",
                 is_ordered_verification=sub.is_ordered_verification,
+                submitter_name=sub.submitter_name,
+                submitter_nim=sub.submitter_nim,
             ))
 
         return result

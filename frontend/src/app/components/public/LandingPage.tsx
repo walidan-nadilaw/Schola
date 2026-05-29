@@ -30,12 +30,12 @@ export default function LandingPage({
   const [faqs, setFaqs] = useState<{ id: string; question: string; answer: string }[]>([]);
 
   useEffect(() => {
-    api.get<{ id: string; letter_type: string }[]>('/templates')
-      .then((data) => setTemplates(data))
+    api.get<any>('/templates')
+      .then((res) => setTemplates(res.data || []))
       .catch((err) => console.error("Gagal memuat template surat:", err));
 
-    api.get<{ id: string; question: string; answer: string }[]>('/faqs')
-      .then((data) => setFaqs(data))
+    api.get<any>('/faqs')
+      .then((res) => setFaqs(res.data || []))
       .catch((err) => console.error("Gagal memuat FAQ:", err));
   }, []);
 
@@ -135,7 +135,13 @@ export default function LandingPage({
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[#928C8C]" size={18} />
                 </div>
                 <button
-                  onClick={() => onAjukan?.(selectedLetter)}
+                  onClick={() => {
+                    if (!selectedLetter) {
+                      alert('Silakan pilih jenis surat terlebih dahulu sebelum mengajukan!');
+                      return;
+                    }
+                    onAjukan?.(selectedLetter);
+                  }}
                   className="bg-[#007bff] h-[34px] px-6 rounded-[3px] text-white font-bold text-[12.564px] hover:bg-[#0056b3] transition-colors"
                 >
                   Ajukan

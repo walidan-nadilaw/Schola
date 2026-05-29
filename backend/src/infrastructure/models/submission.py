@@ -96,6 +96,8 @@ class Submission(Base):
             attachments=[a.to_domain() for a in self.attachments],
             created_at=self.created_at,
             updated_at=self.updated_at,
+            submitter_name=self.submitter.nama if self.submitter else None,
+            submitter_nim=self.submitter.nim if self.submitter else None,
         )
 
     @classmethod
@@ -187,6 +189,7 @@ class SubmissionVerifier(Base):
             signature_timestamp=self.signature_timestamp,
             created_at=self.created_at,
             updated_at=self.updated_at,
+            verifier_name=self.verifier_name,
         )
 
     @classmethod

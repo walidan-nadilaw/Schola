@@ -39,11 +39,9 @@ def _to_response(t) -> TemplateResponse:
 @router.get(
     "/",
     response_model=HTTPDataResponse[list[TemplateResponse]],
-    responses={401: {"model": HTTPErrorResponse}},
 )
 async def list_templates(
     active_only: bool = Query(True, description="Only show active templates"),
-    _current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db_session),
 ):
     """List templates. Defaults to active only."""

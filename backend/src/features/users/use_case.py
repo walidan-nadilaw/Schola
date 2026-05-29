@@ -56,11 +56,14 @@ class CreateUserUseCase:
         self,
         email: str,
         password: str,
+        nama: str | None = None,
         role: UserRole = UserRole.MAHASISWA,
         nim: str | None = None,
         fakultas: str | None = None,
         departemen: str | None = None,
         nip: str | None = None,
+        program: str | None = None,
+        position: str | None = None,
     ) -> User:
         existing = await self._repo.find_by_email(email)
         if existing is not None:
@@ -76,7 +79,11 @@ class CreateUserUseCase:
                 fakultas=fakultas,
                 departemen=departemen,
                 nip=nip,
+                program=program,
+                position=position,
             )
+            if nama:
+                user.nama = nama
         except ValueError as exc:
             raise BadRequestException(str(exc))
 
@@ -94,16 +101,21 @@ class UpdateUserUseCase:
     async def execute(
         self,
         user_id,
+        nama: str | None = None,
         role: UserRole | None = None,
         nim: str | None = None,
         fakultas: str | None = None,
         departemen: str | None = None,
         nip: str | None = None,
+        program: str | None = None,
+        position: str | None = None,
     ) -> User:
         user = await self._repo.findById(user_id)
         if user is None:
             raise NotFoundException("User tidak ditemukan")
 
+        if nama is not None:
+            user.nama = nama
         if role is not None:
             user.role = role
         if nim is not None:
@@ -114,6 +126,10 @@ class UpdateUserUseCase:
             user.departemen = departemen
         if nip is not None:
             user.nip = nip
+        if program is not None:
+            user.program = program
+        if position is not None:
+            user.position = position
 
         return await self._repo.update(user)
 
