@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Upload, X, ChevronLeft } from 'lucide-react';
 import StepTimeline from '../public/StepTimeline';
@@ -170,7 +171,7 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
 
       return submissionId;
     } catch (e: any) {
-      alert(`Gagal menyimpan: ${e.message}`);
+      toast.error(`Gagal menyimpan: ${e.message}`);
       return null;
     } finally {
       setLoading(false);
@@ -180,32 +181,30 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
   const handleSaveDraft = async () => {
     const subId = await saveSubmissionState();
     if (subId) {
-      alert(`Draft pengajuan berhasil disimpan ke database! (ID: ${subId})`);
+      toast.success(`Draft berhasil disimpan (ID: ${subId})`);
     }
   };
 
   const handleFinalize = async () => {
-    // 1. Save state first to ensure latest fields and files are recorded
     const subId = await saveSubmissionState();
     if (!subId) {
-      alert('Gagal memproses pengajuan. Mohon lengkapi data dengan benar.');
+      toast.error('Gagal memproses pengajuan. Mohon lengkapi data dengan benar.');
       return;
     }
 
     setLoading(true);
     try {
-      // Get verifier order ids
       const verifiersOrder = selectedVerifiers.map((v) => v.id);
       await sendFinalizeSubmission(subId, verifiersOrder, isOrderedVerification);
 
-      alert('Pengajuan berhasil difinalisasi dan dikirim ke verifikator!');
+      toast.success('Pengajuan berhasil difinalisasi dan dikirim ke verifikator!');
       if (onBackToList) {
         onBackToList();
       } else {
         navigate('/diajukan');
       }
     } catch (e: any) {
-      alert(`Gagal finalisasi: ${e.message}`);
+      toast.error(`Gagal finalisasi: ${e.message}`);
     } finally {
       setLoading(false);
     }

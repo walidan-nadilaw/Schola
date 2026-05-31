@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { ArrowLeft, Download, User, Calendar, FileText, CheckCircle, Edit2, XCircle, Clock, Eye, X } from 'lucide-react';
 import { Submission, SubmissionStatus, fetchSubmissionById } from '../../utils/submissions';
 
@@ -87,9 +88,9 @@ export default function SubmissionDetail({ submissionId, onBack, onEdit }: Submi
             <button
               onClick={() => {
                 if (submission.isFullyApproved()) {
-                  alert(`Mengunduh surat terverifikasi: ${submission.id}`);
+                  toast.info(`Fitur unduh surat terverifikasi belum tersedia (ID: ${submission.id})`);
                 } else {
-                  alert(`Mengunduh surat belum terverifikasi (tanpa tanda tangan): ${submission.id}`);
+                  toast.info(`Fitur unduh surat belum tersedia (ID: ${submission.id})`);
                 }
               }}
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-colors ${
@@ -243,7 +244,7 @@ export default function SubmissionDetail({ submissionId, onBack, onEdit }: Submi
                             const url = file.path.startsWith('http') ? file.path : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${file.path}`;
                             window.open(url, '_blank');
                           } else {
-                            alert(`Mengunduh lampiran: ${file.name}`);
+                            toast.info(`Lampiran belum tersedia: ${file.name}`);
                           }
                         }}
                         className="p-2 text-[#007bff] hover:bg-blue-50 rounded-lg transition-colors"
@@ -324,9 +325,9 @@ export default function SubmissionDetail({ submissionId, onBack, onEdit }: Submi
                     <button
                       onClick={() => {
                         if (submission.isFullyApproved()) {
-                          alert(`Mengunduh PDF terverifikasi: ${submission.id}`);
+                          toast.info(`Fitur unduh PDF terverifikasi belum tersedia (ID: ${submission.id})`);
                         } else {
-                          alert(`Mengunduh PDF belum terverifikasi: ${submission.id}`);
+                          toast.info(`Fitur unduh PDF belum tersedia (ID: ${submission.id})`);
                         }
                       }}
                       className="flex items-center gap-2 bg-[#007bff] text-white px-4 py-2 rounded-lg hover:bg-[#0056b3] transition-colors"

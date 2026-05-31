@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Save, X, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { mockGuides, GuideItem } from '../../utils/guides';
 
@@ -44,12 +45,12 @@ export default function AdminPanduanManagement() {
 
   const handleSave = () => {
     if (!formTitle.trim()) {
-      alert('Judul panduan wajib diisi!');
+      toast.error('Judul panduan wajib diisi!');
       return;
     }
     const cleanSteps = formSteps.filter(s => s.trim() !== '');
     if (cleanSteps.length === 0) {
-      alert('Panduan minimal harus memiliki 1 langkah isi!');
+      toast.error('Panduan minimal harus memiliki 1 langkah isi!');
       return;
     }
 
@@ -70,7 +71,7 @@ export default function AdminPanduanManagement() {
 
     setGuides([...mockGuides]);
     setEditingId(null);
-    alert('Panduan berhasil disimpan!');
+    toast.success('Panduan berhasil disimpan!');
   };
 
   const handleDelete = (id: string) => {
@@ -79,7 +80,7 @@ export default function AdminPanduanManagement() {
       if (idx >= 0) {
         mockGuides.splice(idx, 1);
         setGuides([...mockGuides]);
-        alert('Panduan berhasil dihapus!');
+        toast.success('Panduan berhasil dihapus!');
       }
     }
   };

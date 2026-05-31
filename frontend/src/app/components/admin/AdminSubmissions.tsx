@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { FileText, Eye, Trash2, ShieldAlert, Search } from 'lucide-react';
 import { fetchAllSubmissions, deleteSubmissionDraft, Submission, SubmissionStatus } from '../../utils/submissions';
 
@@ -32,10 +33,10 @@ export default function AdminSubmissions({ onViewDetail }: AdminSubmissionsProps
     if (confirm(`Apakah Anda yakin ingin menghapus pengajuan ${id}?`)) {
       try {
         await deleteSubmissionDraft(id);
-        alert('Pengajuan berhasil dihapus dari sistem!');
+        toast.success('Pengajuan berhasil dihapus dari sistem!');
         loadSubmissions();
       } catch (e: any) {
-        alert(`Gagal menghapus pengajuan: ${e.message}`);
+        toast.error(`Gagal menghapus pengajuan: ${e.message}`);
       }
     }
   };

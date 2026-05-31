@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Plus, Edit, Trash2, FileText } from 'lucide-react';
 import { fetchAllFormTemplates, deleteFormTemplate, FormTemplate } from '../../utils/formTemplates';
 import FormBuilder from './FormBuilder';
@@ -39,10 +40,10 @@ export default function AdminFormManagement() {
     if (confirm('Apakah Anda yakin ingin menghapus template ini?')) {
       const success = await deleteFormTemplate(templateId);
       if (success) {
-        alert('Template berhasil dihapus!');
+        toast.success('Template berhasil dihapus!');
         loadTemplates();
       } else {
-        alert('Gagal menghapus template.');
+        toast.error('Gagal menghapus template.');
       }
     }
   };
