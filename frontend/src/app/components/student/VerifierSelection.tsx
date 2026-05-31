@@ -61,11 +61,11 @@ export default function VerifierSelection({
       return;
     }
 
-    const newVerifier = {
+    const newVerifier = new SelectedVerifier({
       ...user,
       order: isOrdered ? selectedVerifiers.length + 1 : undefined,
-      verifierRole: 'verifikator' as const,
-    };
+      verifierRole: 'verifikator',
+    });
 
     onVerifiersChange([...selectedVerifiers, newVerifier]);
     setSearchQuery('');
@@ -75,7 +75,7 @@ export default function VerifierSelection({
 
   const handleRoleChange = (userId: string, role: 'verifikator' | 'penandatangan') => {
     const updatedVerifiers = selectedVerifiers.map((v) =>
-      v.id === userId ? { ...v, verifierRole: role } : v
+      v.id === userId ? new SelectedVerifier({ ...v, verifierRole: role }) : v
     );
     onVerifiersChange(updatedVerifiers);
   };
@@ -83,7 +83,7 @@ export default function VerifierSelection({
   const handleRemoveVerifier = (userId: string) => {
     const updatedVerifiers = selectedVerifiers
       .filter((v) => v.id !== userId)
-      .map((v, index) => ({
+      .map((v, index) => new SelectedVerifier({
         ...v,
         order: isOrdered ? index + 1 : undefined,
       }));
@@ -97,8 +97,7 @@ export default function VerifierSelection({
       newVerifiers[index],
       newVerifiers[index - 1],
     ];
-    // Update order numbers
-    const updatedVerifiers = newVerifiers.map((v, i) => ({
+    const updatedVerifiers = newVerifiers.map((v, i) => new SelectedVerifier({
       ...v,
       order: i + 1,
     }));
@@ -112,8 +111,7 @@ export default function VerifierSelection({
       newVerifiers[index + 1],
       newVerifiers[index],
     ];
-    // Update order numbers
-    const updatedVerifiers = newVerifiers.map((v, i) => ({
+    const updatedVerifiers = newVerifiers.map((v, i) => new SelectedVerifier({
       ...v,
       order: i + 1,
     }));
@@ -122,8 +120,7 @@ export default function VerifierSelection({
 
   const handleOrderedToggle = (ordered: boolean) => {
     onOrderedChange(ordered);
-    // Update order property for all verifiers
-    const updatedVerifiers = selectedVerifiers.map((v, index) => ({
+    const updatedVerifiers = selectedVerifiers.map((v, index) => new SelectedVerifier({
       ...v,
       order: ordered ? index + 1 : undefined,
     }));
