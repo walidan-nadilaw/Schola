@@ -73,24 +73,29 @@ export class SelectedVerifier extends User {
   }
 }
 
-// Dynamic verifier fetching from backend database
-export const fetchVerifiers = async (): Promise<User[]> => {
+// Fetch eligible verifiers: all users except operators.
+// Accepts an optional search string to use server-side search (avoids paginating all users).
+export const fetchVerifiers = async (search?: string): Promise<User[]> => {
   try {
-    const res = await api.get<any>('/users', { params: { role: 'dosen_pejabat', limit: 100 } });
+    const params: Record<string, string | number> = { limit: 200 };
+    if (search?.trim()) params.search = search.trim();
+    const res = await api.get<any>('/users', { params });
     const resData = res.data?.data || res.data || res;
     const data = Array.isArray(resData) ? resData : [];
-    return data.map((u: any) => new User({
-      id: u.id,
-      name: u.nama || u.name || u.email.split('@')[0],
-      role: u.role,
-      department: u.departemen || u.department || u.position || 'IPB University',
-      email: u.email,
-      nim: u.nim,
-      fakultas: u.fakultas,
-      program: u.program,
-      nip: u.nip,
-      position: u.position
-    }));
+    return data
+      .filter((u: any) => u.role !== 'operator')
+      .map((u: any) => new User({
+        id: u.id,
+        name: u.nama || u.name || u.email.split('@')[0],
+        role: u.role,
+        department: u.departemen || u.department || u.position || 'IPB University',
+        email: u.email,
+        nim: u.nim,
+        fakultas: u.fakultas,
+        program: u.program,
+        nip: u.nip,
+        position: u.position
+      }));
   } catch (e) {
     console.error('Gagal mengambil daftar verifikator:', e);
     return [];

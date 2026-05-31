@@ -247,7 +247,7 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
               id="btn-logout"
               onClick={onLogout}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Logout"
+              title="Keluar"
             >
               <LogOut size={20} className="text-gray-600" />
             </button>

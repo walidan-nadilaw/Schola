@@ -1,7 +1,7 @@
 import { api } from './api';
 
 export enum SubmissionStatus {
-  DRAFT = 'Draft',
+  DRAFT = 'Draf',
   PENDING = 'Menunggu Verifikasi',
   APPROVED = 'Disetujui',
   REJECTED = 'Ditolak'
@@ -145,6 +145,18 @@ export class Submission {
   }
 }
 
+// Helper: Extract submission title from form_data using a consistent key chain
+export const extractTitle = (
+  formData?: Record<string, any>,
+  fallback = 'Keperluan Akademik'
+): string => {
+  if (!formData) return fallback;
+  const key = Object.keys(formData).find(
+    k => k === 'Judul' || k === 'field-judul' || k.toLowerCase() === 'judul' || k.toLowerCase().includes('judul')
+  );
+  return (key ? formData[key] : undefined) ?? formData['Keperluan'] ?? fallback;
+};
+
 // Helper: Map status from backend lowercase to SubmissionStatus enum
 export const mapStatusFromBackend = (status: string): SubmissionStatus => {
   const s = status.toLowerCase();
@@ -178,8 +190,7 @@ export const mapBackendToSubmission = (s: any): Submission => {
     signature_hash: v.signature_hash
   }));
 
-  const keperluanKey = Object.keys(s.form_data || {}).find(k => k === 'Judul' || k === 'field-judul' || k.toLowerCase() === 'judul' || k.toLowerCase().includes('judul') || k.toLowerCase().includes('keperluan')) || 'Judul';
-  const keperluan = s.form_data?.[keperluanKey] || s.form_data?.['Judul'] || s.form_data?.['field-judul'] || s.form_data?.['Keperluan'] || 'Keperluan Akademik';
+  const keperluan = extractTitle(s.form_data);
 
   return new Submission({
     id: s.id,

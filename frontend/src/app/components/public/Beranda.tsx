@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Eye, FileText, Clock, MessageCircle, Settings, BookOpen, HelpCircle } from 'lucide-react';
-import { Submission, fetchAllSubmissions, SubmissionStatus } from '../../utils/submissions';
+import { Eye, FileText, Clock, MessageCircle, Settings, BookOpen, HelpCircle, Users } from 'lucide-react';
+import { Submission, fetchAllSubmissions, SubmissionStatus, extractTitle } from '../../utils/submissions';
 import { fetchAllFormTemplates, FormTemplate } from '../../utils/formTemplates';
-import { mockGuides, mockFAQs } from '../../utils/guides';
+import { mockGuides } from '../../utils/guides';
 import { api } from '../../utils/api';
 
 interface BerandaProps {
@@ -25,6 +25,8 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
   const [pendingVerifications, setPendingVerifications] = useState<Submission[]>([]);
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [faqCount, setFaqCount] = useState(0);
+  const [faqs, setFaqs] = useState<{ id: string; question: string; answer: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,22 +34,27 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
       setLoading(true);
       try {
         const isMahasiswa = userRole === 'mahasiswa';
-        const [subList, tplList, statsRes, pendingRes] = await Promise.all([
+        const [subList, tplList, statsRes, pendingRes, faqRes] = await Promise.all([
           fetchAllSubmissions(),
           fetchAllFormTemplates(),
           !isMahasiswa ? api.get<any>('/dashboard/stats').catch(() => null) : Promise.resolve(null),
-          !isMahasiswa ? api.get<any>('/verifications').catch(() => null) : Promise.resolve(null)
+          !isMahasiswa ? api.get<any>('/verifications').catch(() => null) : Promise.resolve(null),
+          !isMahasiswa ? api.get<any>('/faqs/').catch(() => null) : Promise.resolve(null),
         ]);
         setSubmissions(subList || []);
         setTemplates(tplList || []);
         setStats(statsRes?.data || statsRes);
+        const faqList = faqRes?.data ?? faqRes;
+        const faqArr = Array.isArray(faqList) ? faqList : [];
+        setFaqCount(faqArr.length);
+        setFaqs(faqArr);
 
         const pendingData = pendingRes?.data || (Array.isArray(pendingRes) ? pendingRes : []);
         const mappedPending = Array.isArray(pendingData) ? pendingData.map((s: any) => {
           return new Submission({
             id: s.submission_id,
             jenisSurat: s.letter_type,
-            keperluan: s.keperluan || 'Keperluan Akademik',
+            keperluan: extractTitle(s.form_data, s.keperluan || 'Keperluan Akademik'),
             tanggalPengajuan: s.created_at,
             status: SubmissionStatus.PENDING,
             submitterName: s.submitter_name,
@@ -115,9 +122,19 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
             className="bg-white border border-gray-200 p-6 rounded-lg hover:border-[#007bff] transition-all text-left shadow-sm hover:shadow"
           >
             <HelpCircle className="text-amber-500 mb-3" size={32} />
-            <p className="text-2xl font-bold text-gray-800">{mockFAQs.length}</p>
+            <p className="text-2xl font-bold text-gray-800">{faqCount}</p>
             <p className="font-semibold text-sm text-gray-700 mt-1">FAQ Bantuan</p>
             <p className="text-xs text-gray-500 mt-0.5">Atur Tanya Jawab Aktif</p>
+          </button>
+
+          <button
+            onClick={() => onSectionChange?.('admin/users')}
+            className="bg-white border border-gray-200 p-6 rounded-lg hover:border-[#007bff] transition-all text-left shadow-sm hover:shadow"
+          >
+            <Users className="text-rose-500 mb-3" size={32} />
+            <p className="text-2xl font-bold text-gray-800">—</p>
+            <p className="font-semibold text-sm text-gray-700 mt-1">Pengguna</p>
+            <p className="text-xs text-gray-500 mt-0.5">Manajemen Akun</p>
           </button>
         </div>
 
@@ -228,7 +245,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
               </button>
             </div>
             <div className="divide-y divide-gray-150">
-              {mockFAQs.slice(0, 3).map((faq) => (
+              {faqs.slice(0, 3).map((faq) => (
                 <div key={faq.id} className="p-4 flex items-center justify-between hover:bg-gray-55/35 transition-colors">
                   <div>
                     <p className="font-semibold text-sm text-gray-800 truncate max-w-sm">{faq.question}</p>
