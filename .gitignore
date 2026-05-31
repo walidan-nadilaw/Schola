@@ -297,4 +297,13 @@ backend/__pycache__/
 # ancient
 backend/.ancient
 
+# sources folder
+backend/uploads
+*.pdf
+
 # End of https://www.toptal.com/developers/gitignore/api/react,python,flask
+
+# Fix plan audit
+FIX_PLAN.md
+backend/FIX_PLAN.md
+.github
