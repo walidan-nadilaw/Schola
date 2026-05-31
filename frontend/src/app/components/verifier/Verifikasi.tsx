@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Eye, Search, ArrowUpDown, FileText, Download, X } from 'lucide-react';
-import { Submission, SubmissionStatus, mapBackendToSubmission } from '../../utils/submissions';
+import { CheckCircle, XCircle, Eye, Search, ArrowUpDown, FileText, Download, X, PenLine } from 'lucide-react';
+import { Submission, SubmissionStatus, mapBackendToSubmission, extractTitle } from '../../utils/submissions';
 import { api } from '../../utils/api';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ export default function Verifikasi() {
   const [verificationMessage, setVerificationMessage] = useState('');
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [verificationAction, setVerificationAction] = useState<'approve' | 'reject' | null>(null);
+  const [signerConfirmed, setSignerConfirmed] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +28,7 @@ export default function Verifikasi() {
         return new Submission({
           id: s.submission_id,
           jenisSurat: s.letter_type,
-          keperluan: s.keperluan || 'Keperluan Akademik',
+          keperluan: extractTitle(s.form_data, s.keperluan || 'Keperluan Akademik'),
           tanggalPengajuan: s.created_at,
           status: SubmissionStatus.PENDING,
           submitterName: s.submitter_name,
@@ -81,12 +82,14 @@ export default function Verifikasi() {
     setSelectedSubmission(null);
     setVerificationMessage('');
     setVerificationAction(null);
+    setSignerConfirmed(false);
   };
 
   const handleCancelVerification = () => {
     setShowVerificationForm(false);
     setVerificationMessage('');
     setVerificationAction(null);
+    setSignerConfirmed(false);
   };
 
   const handleViewDetail = async (submission: Submission) => {
@@ -280,14 +283,17 @@ export default function Verifikasi() {
                             handleViewDetail(submission);
                             setTimeout(() => handleOpenVerificationForm('approve'), 300);
                           }}
-                          className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
                             submission.role === 'verifier'
                               ? 'bg-green-600 hover:bg-green-700 text-white'
                               : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                           }`}
-                          title={submission.role === 'verifier' ? "Setujui" : "Tanda Tangan & Setujui"}
+                          title={submission.role === 'verifier' ? "Verifikasi pengajuan" : "Bubuhkan tanda tangan digital"}
                         >
-                          {submission.role === 'verifier' ? "Setuju" : "Tanda Tangan"}
+                          {submission.role === 'verifier'
+                            ? <><CheckCircle size={14} /> Setujui</>
+                            : <><PenLine size={14} /> Tanda Tangani</>
+                          }
                         </button>
                       )}
                     </div>
@@ -339,7 +345,16 @@ export default function Verifikasi() {
               </button>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Detail Pengajuan</h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold">Detail Pengajuan</h2>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      selectedSubmission.role === 'verifier'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-indigo-100 text-indigo-800'
+                    }`}>
+                      {selectedSubmission.role === 'verifier' ? 'Verifikator' : 'Penandatangan'}
+                    </span>
+                  </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     selectedSubmission.isFullyApproved()
                       ? 'bg-green-100 text-green-700'
@@ -498,8 +513,21 @@ export default function Verifikasi() {
 
                   {/* Verification Form */}
                   {showVerificationForm && selectedSubmission.isPending() && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                      {verificationAction === 'approve' && selectedSubmission.role === 'signer' && (
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={signerConfirmed}
+                            onChange={(e) => setSignerConfirmed(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 text-indigo-600 focus:ring-indigo-500 rounded"
+                          />
+                          <span className="text-sm font-medium text-indigo-800">
+                            Saya menyetujui dan membubuhkan tanda tangan digital saya pada pengajuan ini.
+                          </span>
+                        </label>
+                      )}
+                      <label className="block text-sm font-medium text-gray-700">
                         Pesan untuk Pemohon {verificationAction === 'reject' && <span className="text-red-500">*</span>}
                       </label>
                       <textarea
@@ -519,7 +547,10 @@ export default function Verifikasi() {
                         <>
                           <button
                             onClick={handleSubmitVerification}
-                            disabled={verificationAction === 'reject' && !verificationMessage.trim()}
+                            disabled={
+                              (verificationAction === 'reject' && !verificationMessage.trim()) ||
+                              (verificationAction === 'approve' && selectedSubmission.role === 'signer' && !signerConfirmed)
+                            }
                             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white ${
                               verificationAction === 'reject'
                                 ? 'bg-red-600 hover:bg-red-700'
@@ -528,7 +559,7 @@ export default function Verifikasi() {
                                 : 'bg-indigo-600 hover:bg-indigo-700'
                             }`}
                           >
-                            <CheckCircle size={20} />
+                            {verificationAction === 'reject' ? <XCircle size={20} /> : selectedSubmission.role === 'signer' ? <PenLine size={20} /> : <CheckCircle size={20} />}
                             {verificationAction === 'reject'
                               ? 'Kirim Alasan Penolakan'
                               : selectedSubmission.role === 'verifier'
@@ -552,8 +583,8 @@ export default function Verifikasi() {
                                 : 'bg-indigo-600 hover:bg-indigo-700'
                             }`}
                           >
-                            <CheckCircle size={20} />
-                            {selectedSubmission.role === 'verifier' ? 'Setujui' : 'Tanda Tangan & Setujui'}
+                            {selectedSubmission.role === 'verifier' ? <CheckCircle size={20} /> : <PenLine size={20} />}
+                            {selectedSubmission.role === 'verifier' ? 'Setujui' : 'Tanda Tangani'}
                           </button>
                           <button
                             onClick={() => handleOpenVerificationForm('reject')}

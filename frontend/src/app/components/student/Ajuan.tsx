@@ -12,8 +12,8 @@ import {
   updateSubmissionDraft,
   sendFinalizeSubmission,
   uploadAttachmentForSubmission,
-  fetchSubmissionById
 } from '../../utils/submissions';
+import { api } from '../../utils/api';
 
 interface AjuanProps {
   preSelectedLetter?: string;
@@ -56,23 +56,22 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
         setLoading(true);
         setActiveSubmissionId(editingSubmissionId);
         try {
-          const sub = await fetchSubmissionById(editingSubmissionId);
-          if (sub) {
-            setSelectedLetter(sub.jenisSurat);
-            setFormData(sub.formData);
-            
-            // Map verifiers back into SelectedVerifier objects
-            const verifiersMapped = sub.verifiers.map((v, i) => new SelectedVerifier({
-              id: v.name, // Using name as ID mapping key or index if real ID isn't directly matching
-              name: v.name,
-              role: v.role,
+          const res = await api.get<any>(`/submissions/${encodeURIComponent(editingSubmissionId)}`);
+          const raw = res?.data || res;
+          if (raw) {
+            setSelectedLetter(raw.letter_type || '');
+            setFormData(raw.form_data || {});
+            const verifiersMapped = (raw.verifiers || []).map((v: any, i: number) => new SelectedVerifier({
+              id: v.verifier_id || v.name,
+              name: v.verifier_name || v.name,
+              role: v.verifier_role || 'verifikator',
               department: 'IPB University',
-              email: `${v.name.toLowerCase().replace(/[^a-z]/g, '')}@ipb.ac.id`,
+              email: v.email || `${(v.verifier_name || v.name || '').toLowerCase().replace(/[^a-z]/g, '')}@ipb.ac.id`,
               order: i + 1,
-              verifierRole: v.role.toLowerCase().includes('tangan') ? 'penandatangan' : 'verifikator'
+              verifierRole: (v.verifier_role || '').toLowerCase().includes('tangan') ? 'penandatangan' : 'verifikator'
             }));
             setSelectedVerifiers(verifiersMapped);
-            setIsOrderedVerification(true);
+            setIsOrderedVerification(raw.is_ordered_verification ?? false);
             setCurrentStep(2);
           }
         } catch (e) {
@@ -85,6 +84,8 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
         const template = formTemplates.find(t => t.letterType === preSelectedLetter);
         if (template) {
           setCurrentStep(2);
+        } else {
+          toast.error('Template surat tidak ditemukan. Silakan pilih jenis surat secara manual.');
         }
       }
     };

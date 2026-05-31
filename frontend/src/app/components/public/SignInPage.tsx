@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import imgHeader from "../../../imports/Signing/fb4b976284f353796ffb0e836979232591a38ec0.png";
 import { User } from '../../utils/users';
 import { api, TOKEN_KEY } from '../../utils/api';
@@ -12,6 +13,7 @@ interface SignInPageProps {
 export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignInPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -148,14 +150,24 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
               <label className="block text-[16px] leading-[24px] text-black">
                 Password
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan password"
-                className="w-full h-[50px] px-4 py-3 border border-[#d1d5dc] rounded-[10px] text-[16px] text-black placeholder:text-[rgba(10,10,10,0.5)] focus:outline-none focus:ring-2 focus:ring-[#007bff] focus:border-transparent"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan password"
+                  className="w-full h-[50px] px-4 py-3 pr-12 border border-[#d1d5dc] rounded-[10px] text-[16px] text-black placeholder:text-[rgba(10,10,10,0.5)] focus:outline-none focus:ring-2 focus:ring-[#007bff] focus:border-transparent"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             {/* Remember Me & Forgot Password */}
@@ -201,10 +213,17 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
             Gunakan akun IPB yang sama dengan portal akademik
           </p>
 
-          <div className="border-t border-[#e5e7eb] mt-6 pt-6">
-            <p className="text-[14px] leading-[20px] text-[#4a5565] text-center">
-              Belum punya akun? <a href="#contact-admin" className="text-[#007bff] hover:underline">Hubungi admin</a>
+          <div className="border-t border-[#e5e7eb] mt-6 pt-6 space-y-1 text-center">
+            <p className="text-[14px] leading-[20px] text-[#4a5565]">
+              Belum punya akun?{' '}
+              <a
+                href="mailto:admin@ipb.ac.id?subject=Permintaan%20Akun%20Schola&body=Nama%20Lengkap%3A%20%0ANIM%3A%20"
+                className="text-[#007bff] hover:underline"
+              >
+                Hubungi Admin
+              </a>
             </p>
+            <p className="text-[12px] text-[#6b7280]">Sertakan Nama Lengkap dan NIM Anda dalam email.</p>
           </div>
         </div>
       </div>

@@ -137,14 +137,14 @@ export default function AdminSubmissions({ onViewDetail }: AdminSubmissionsProps
                       <button
                         onClick={() => onViewDetail(sub.id)}
                         className="p-2 text-[#007bff] hover:bg-blue-50 rounded-lg transition-colors"
-                        title="View Details"
+                        title="Lihat Detail"
                       >
                         <Eye size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(sub.id)}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete Submission"
+                        title="Hapus Pengajuan"
                       >
                         <Trash2 size={18} />
                       </button>

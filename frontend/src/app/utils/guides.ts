@@ -57,7 +57,7 @@ export const mockFAQs: FAQItem[] = [
   {
     id: 'F03',
     question: 'Apakah bisa mengedit pengajuan yang sudah disubmit?',
-    answer: 'Pengajuan yang berstatus "Draft" atau "Ditolak" dapat diedit. Namun pengajuan yang sudah dalam proses verifikasi tidak dapat diedit lagi.'
+    answer: 'Pengajuan yang berstatus "Draf" atau "Ditolak" dapat diedit. Namun pengajuan yang sudah dalam proses verifikasi tidak dapat diedit lagi.'
   },
   {
     id: 'F04',

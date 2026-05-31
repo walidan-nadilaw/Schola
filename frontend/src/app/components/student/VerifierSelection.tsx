@@ -29,30 +29,34 @@ export default function VerifierSelection({
     loadVerifiers();
   }, []);
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    if (query.trim()) {
-      const lowercaseQuery = query.toLowerCase();
-      const results = allVerifiers
-        .filter((v) => v.name.toLowerCase().includes(lowercaseQuery) || v.id.toLowerCase().includes(lowercaseQuery))
-        .map((v) => new SelectedVerifier({
-          id: v.id,
-          name: v.name,
-          role: v.role,
-          department: v.department,
-          email: v.email,
-          nim: v.nim,
-          fakultas: v.fakultas,
-          program: v.program,
-          nip: v.nip,
-          position: v.position
-        }));
-      setSearchResults(results);
-      setShowResults(true);
-    } else {
+    if (!query.trim()) {
       setSearchResults([]);
       setShowResults(false);
+      return;
     }
+    // Use server-side search for accuracy; fall back to client-side filter
+    const pool = query.trim().length >= 2
+      ? await fetchVerifiers(query.trim())
+      : allVerifiers;
+    const lowercaseQuery = query.toLowerCase();
+    const results = pool
+      .filter((v) => v.name.toLowerCase().includes(lowercaseQuery) || v.id.toLowerCase().includes(lowercaseQuery))
+      .map((v) => new SelectedVerifier({
+        id: v.id,
+        name: v.name,
+        role: v.role,
+        department: v.department,
+        email: v.email,
+        nim: v.nim,
+        fakultas: v.fakultas,
+        program: v.program,
+        nip: v.nip,
+        position: v.position
+      }));
+    setSearchResults(results);
+    setShowResults(true);
   };
 
   const handleSelectUser = (user: SelectedVerifier) => {
