@@ -48,12 +48,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       /* JSON parse failed — use default */
     }
 
-    // Auto logout on 401
+    // Auto logout on 401 — only redirect if user had an active session
     if (response.status === 401) {
+      const hadToken = !!localStorage.getItem(TOKEN_KEY);
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('currentUser');
-      window.location.href = '/';
+      if (hadToken) window.location.href = '/';
     }
 
     throw new Error(detail);

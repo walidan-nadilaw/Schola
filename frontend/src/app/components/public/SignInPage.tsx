@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import imgHeader from "../../../imports/Signing/fb4b976284f353796ffb0e836979232591a38ec0.png";
 import { User } from '../../utils/users';
-import { api } from '../../utils/api';
+import { api, TOKEN_KEY } from '../../utils/api';
 
 interface SignInPageProps {
   onSignIn: (user: User) => void;
@@ -27,8 +27,7 @@ export default function SignInPage({ onSignIn, onBackToHome, onNavigate }: SignI
       
       const response = res.data || res;
 
-      // Save token to localStorage
-      localStorage.setItem('schola_token', response.token);
+      localStorage.setItem(TOKEN_KEY, response.token);
       
       // Map and instanciate User class
       const loggedUser = new User({
