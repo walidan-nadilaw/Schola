@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 import { Plus, Trash2, GripVertical, Save, X } from 'lucide-react';
 import { FormField, FieldType, FormTemplate, createFormTemplate, updateFormTemplate } from '../../utils/formTemplates';
 
@@ -61,7 +62,7 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
   const removeField = (index: number) => {
     const field = fields[index];
     if (field.id === 'field-judul') {
-      alert('Field Judul wajib ada dan tidak dapat dihapus!');
+      toast.error('Field Judul wajib ada dan tidak dapat dihapus!');
       return;
     }
     setFields(fields.filter((_, i) => i !== index));
@@ -88,12 +89,12 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
 
   const handleSave = async () => {
     if (!letterType.trim()) {
-      alert('Nama surat harus diisi!');
+      toast.error('Nama surat harus diisi!');
       return;
     }
 
     if (fields.length === 0) {
-      alert('Minimal harus ada 1 field!');
+      toast.error('Minimal harus ada 1 field!');
       return;
     }
 
@@ -106,13 +107,13 @@ export default function FormBuilder({ template, onSave, onCancel }: FormBuilderP
       }
 
       if (result) {
-        alert('Template berhasil disimpan!');
+        toast.success('Template berhasil disimpan!');
         onSave();
       } else {
-        alert('Gagal menyimpan template.');
+        toast.error('Gagal menyimpan template.');
       }
     } catch (e: any) {
-      alert(`Gagal menyimpan template: ${e.message}`);
+      toast.error(`Gagal menyimpan template: ${e.message}`);
     }
   };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Search, Download, Eye, Edit, FileText, ChevronLeft, ChevronRight, ArrowUpDown, Trash2 } from 'lucide-react';
 import { Submission, SubmissionStatus, fetchAllSubmissions, deleteSubmissionDraft } from '../../utils/submissions';
 
@@ -37,9 +38,9 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
 
   const handleDownload = (submission: Submission, verified: boolean) => {
     if (verified) {
-      alert(`Mengunduh surat terverifikasi: ${submission.id}`);
+      toast.info(`Fitur unduh surat terverifikasi belum tersedia (ID: ${submission.id})`);
     } else {
-      alert(`Mengunduh surat belum terverifikasi (tanpa tanda tangan): ${submission.id}`);
+      toast.info(`Fitur unduh surat belum tersedia (ID: ${submission.id})`);
     }
   };
 
@@ -58,11 +59,11 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
     try {
       setLoading(true);
       await deleteSubmissionDraft(submission.id);
-      alert('Draft pengajuan berhasil dihapus.');
+      toast.success('Draft pengajuan berhasil dihapus.');
       const data = await fetchAllSubmissions();
       setSubmissions(data);
     } catch (e: any) {
-      alert(`Gagal menghapus draft: ${e.message}`);
+      toast.error(`Gagal menghapus draft: ${e.message}`);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, HelpCircle, Loader2 } from 'lucide-react';
 import { api } from '../../utils/api';
+import { toast } from 'sonner';
 
 interface FAQItem {
   id: string;
@@ -52,7 +53,7 @@ export default function AdminFAQManagement() {
 
   const handleSave = async () => {
     if (!formQuestion.trim() || !formAnswer.trim()) {
-      alert('Pertanyaan dan Jawaban wajib diisi!');
+      toast.error('Pertanyaan dan Jawaban wajib diisi!');
       return;
     }
 
@@ -70,10 +71,10 @@ export default function AdminFAQManagement() {
 
       await fetchFaqs();
       setEditingId(null);
-      alert('FAQ berhasil disimpan!');
+      toast.success('FAQ berhasil disimpan!');
     } catch (err) {
       console.error("Gagal menyimpan FAQ:", err);
-      alert('Gagal menyimpan FAQ.');
+      toast.error('Gagal menyimpan FAQ.');
     }
   };
 
@@ -82,10 +83,10 @@ export default function AdminFAQManagement() {
       try {
         await api.delete(`/faqs/${id}`);
         await fetchFaqs();
-        alert('FAQ berhasil dihapus!');
+        toast.success('FAQ berhasil dihapus!');
       } catch (err) {
         console.error("Gagal menghapus FAQ:", err);
-        alert('Gagal menghapus FAQ.');
+        toast.error('Gagal menghapus FAQ.');
       }
     }
   };

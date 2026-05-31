@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import imgImage1 from "../../../imports/LandingPage/fb4b976284f353796ffb0e836979232591a38ec0.png";
 import imgDashboardLayout from "../../../imports/LandingPage/750568cbefba0fc88c5a2bf3334de13b503195fa.png";
 import imgProtect from "../../../imports/LandingPage/f42a29141fc01fe878647557bfe66a578dc6f730.png";
@@ -137,7 +138,7 @@ export default function LandingPage({
                 <button
                   onClick={() => {
                     if (!selectedLetter) {
-                      alert('Silakan pilih jenis surat terlebih dahulu sebelum mengajukan!');
+                      toast.error('Silakan pilih jenis surat terlebih dahulu sebelum mengajukan!');
                       return;
                     }
                     onAjukan?.(selectedLetter);

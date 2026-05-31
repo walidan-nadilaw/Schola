@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, X, ChevronUp, ChevronDown, User as UserIcon } from 'lucide-react';
 import { fetchVerifiers, SelectedVerifier, User } from '../../utils/users';
+import { toast } from 'sonner';
 
 interface VerifierSelectionProps {
   selectedVerifiers: SelectedVerifier[];
@@ -57,7 +58,7 @@ export default function VerifierSelection({
   const handleSelectUser = (user: SelectedVerifier) => {
     // Check if already selected
     if (selectedVerifiers.some((v) => v.id === user.id)) {
-      alert('User sudah dipilih sebagai verifikator');
+      toast.warning('Pengguna ini sudah dipilih sebagai verifikator');
       return;
     }
 

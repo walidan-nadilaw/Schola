@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Bell, LogOut } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
 
 import LandingPage from './components/public/LandingPage';
 import SignInPage from './components/public/SignInPage';
@@ -108,14 +109,21 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
   // Derive sidebar active key from path (e.g. "/diajukan" → "diajukan")
   const activeSidebarKey = pathname.split('/').filter(Boolean).join('/') || 'beranda';
 
-  // Fetch notifications periodically or on notification menu click
+  const fetchNotifications = () => {
+    api.get<any>('/notifications')
+      .then(res => {
+        const data = res?.data ?? res;
+        setNotifications(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
-    if (auth.isLoggedIn) {
-      api.get<any>('/notifications')
-        .then(res => setNotifications(res.data || []))
-        .catch(err => console.error("Gagal mengambil notifikasi:", err));
-    }
-  }, [auth.isLoggedIn, showNotifications]);
+    if (!auth.isLoggedIn) return;
+    fetchNotifications();
+    const timer = setInterval(fetchNotifications, 30_000);
+    return () => clearInterval(timer);
+  }, [auth.isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex h-screen bg-gray-50 font-['Plus_Jakarta_Sans',sans-serif]">
@@ -144,8 +152,10 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Bell size={20} className="text-gray-600" />
-                {notifications.some((n) => !n.is_read) && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white" />
+                {notifications.filter((n) => !n.is_read).length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-white text-white text-[10px] font-bold flex items-center justify-center px-0.5">
+                    {notifications.filter((n) => !n.is_read).length > 99 ? '99+' : notifications.filter((n) => !n.is_read).length}
+                  </span>
                 )}
               </button>
 
@@ -158,13 +168,15 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
                       {notifications.some((n) => !n.is_read) && (
                         <button
                           onClick={async () => {
-                            for (const n of notifications) {
-                              if (!n.is_read) {
-                                await api.post(`/notifications/${n.id}/read`).catch(() => {});
-                              }
+                            const unread = notifications.filter((n) => !n.is_read);
+                            try {
+                              await Promise.all(
+                                unread.map((n) => api.post(`/notifications/${n.id}/read`))
+                              );
+                            } catch {
+                              toast.error('Gagal menandai beberapa notifikasi sebagai dibaca');
                             }
-                            // Refresh list
-                            api.get<any>('/notifications').then((res) => setNotifications(res.data || []));
+                            fetchNotifications();
                           }}
                           className="text-xs text-[#007bff] hover:underline font-semibold"
                         >
@@ -184,8 +196,7 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
                             onClick={async () => {
                               if (!n.is_read) {
                                 await api.post(`/notifications/${n.id}/read`).catch(() => {});
-                                // Refresh list
-                                api.get<any>('/notifications').then((res) => setNotifications(res.data || []));
+                                fetchNotifications();
                               }
                               if (n.action_url) {
                                 navigate(n.action_url);
@@ -391,6 +402,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-right" richColors />
       <AppContent auth={auth} onSignIn={handleSignIn} onLogout={handleLogout} />
     </BrowserRouter>
   );

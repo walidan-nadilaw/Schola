@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, Search, ArrowUpDown, FileText, Download, X } from 'lucide-react';
 import { Submission, SubmissionStatus, mapBackendToSubmission } from '../../utils/submissions';
 import { api } from '../../utils/api';
+import { toast } from 'sonner';
 
 type SortableColumn = 'judul' | 'tanggalSubmit' | 'tanggalVerifikasi' | 'keterangan';
 
@@ -67,10 +68,10 @@ export default function Verifikasi() {
         comment: status === 'approved' ? verificationMessage : '',
         rejection_reason: status === 'rejected' ? verificationMessage : ''
       });
-      alert(response?.message || response?.data?.message || `Pengajuan ${selectedSubmission.id} berhasil diproses!`);
+      toast.success(response?.message || response?.data?.message || `Pengajuan ${selectedSubmission.id} berhasil diproses!`);
       loadVerifications();
     } catch (e: any) {
-      alert(`Gagal memproses verifikasi: ${e.message}`);
+      toast.error(`Gagal memproses verifikasi: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -97,11 +98,11 @@ export default function Verifikasi() {
         setSelectedSubmission(mapBackendToSubmission(full));
         setShowDetailModal(true);
       } else {
-        alert("Gagal mengambil detail pengajuan.");
+        toast.error("Gagal mengambil detail pengajuan.");
       }
     } catch (e) {
       console.error('Gagal mengambil detail:', e);
-      alert("Gagal mengambil detail pengajuan.");
+      toast.error("Gagal mengambil detail pengajuan.");
     } finally {
       setLoading(false);
     }
@@ -476,7 +477,7 @@ export default function Verifikasi() {
                                   const url = file.path.startsWith('http') ? file.path : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${file.path}`;
                                   window.open(url, '_blank');
                                 } else {
-                                  alert(`Mengunduh dokumen: ${file.name}`);
+                                  toast.info(`Dokumen belum tersedia: ${file.name}`);
                                 }
                               }}
                               className="p-1.5 text-[#007bff] hover:bg-blue-50 rounded transition-colors"
