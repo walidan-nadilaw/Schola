@@ -257,8 +257,8 @@ export const sendFinalizeSubmission = async (id: string, verifiersOrder: string[
 export const uploadAttachmentForSubmission = async (submissionId: string, file: File): Promise<any> => {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await api.post(`/files/upload`, formData, {
+  const res = await api.post<any>(`/files/upload`, formData, {
     params: { submission_id: submissionId }
   });
-  return res.data || res;
+  return res?.data ?? res;
 };
