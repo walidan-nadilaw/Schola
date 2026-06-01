@@ -29,3 +29,8 @@ pytest = "8.4.2"
 [build-system]
 requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pyrefly]
+# Code imports as `src.*`, so the import root is `backend/` (this dir),
+# not `backend/src`. Tell Pyrefly to search here so imports resolve.
+search-path = ["."]

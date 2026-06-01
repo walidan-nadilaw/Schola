@@ -29,7 +29,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         else:
             logger.info("Database already has users - skipping seed")
     except Exception:
-        logger.info("Database already has users - skipping seed")
+        logger.exception("Database seed failed")
     yield
 
 
@@ -44,9 +44,18 @@ app = FastAPI(
 add_global_exception_handlers(app)
 
 # CORS
+# FRONTEND_BASE_URL may be a comma-separated list of allowed origins.
+# Vercel preview deployments get a per-build hash subdomain, so we also
+# match them by regex instead of needing each exact URL.
+_allowed_origins = [
+    origin.strip()
+    for origin in (settings.FRONTEND_BASE_URL or "").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_BASE_URL] if settings.FRONTEND_BASE_URL else ["*"],
+    allow_origins=_allowed_origins or ["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
