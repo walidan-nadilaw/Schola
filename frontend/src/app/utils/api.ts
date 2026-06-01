@@ -43,7 +43,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     let detail = 'Terjadi kesalahan sistem';
     try {
       const err = await response.json();
-      detail = err.detail ?? err.message ?? detail;
+      detail = err.error ?? err.detail ?? err.message ?? detail;
     } catch (_) {
       /* JSON parse failed — use default */
     }
