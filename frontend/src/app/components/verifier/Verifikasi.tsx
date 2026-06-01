@@ -22,7 +22,7 @@ export default function Verifikasi() {
   const loadVerifications = async () => {
     setLoading(true);
     try {
-      const response = await api.get<any>('/verifications');
+      const response = await api.get<any>('/verifications/');
       const data = response?.data || [];
       const mapped = Array.isArray(data) ? data.map((s: any) => {
         return new Submission({

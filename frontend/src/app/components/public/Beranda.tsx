@@ -38,7 +38,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
           fetchAllSubmissions(),
           fetchAllFormTemplates(),
           !isMahasiswa ? api.get<any>('/dashboard/stats').catch(() => null) : Promise.resolve(null),
-          !isMahasiswa ? api.get<any>('/verifications').catch(() => null) : Promise.resolve(null),
+          !isMahasiswa ? api.get<any>('/verifications/').catch(() => null) : Promise.resolve(null),
           !isMahasiswa ? api.get<any>('/faqs/').catch(() => null) : Promise.resolve(null),
         ]);
         setSubmissions(subList || []);

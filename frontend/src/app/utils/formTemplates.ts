@@ -148,7 +148,7 @@ export const fetchFormTemplateById = async (id: string): Promise<FormTemplate | 
 
 export const createFormTemplate = async (letterType: string, fields: FormField[]): Promise<FormTemplate | null> => {
   try {
-    const res = await api.post<any>('/templates', {
+    const res = await api.post<any>('/templates/', {
       letter_type: letterType,
       description: `Formulir pengajuan untuk ${letterType}`,
       fields: fields.map((f) => ({

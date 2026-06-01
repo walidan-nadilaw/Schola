@@ -110,7 +110,7 @@ function AppShell({ auth, onLogout }: { auth: AuthState; onLogout: () => void })
   const activeSidebarKey = pathname.split('/').filter(Boolean).join('/') || 'beranda';
 
   const fetchNotifications = () => {
-    api.get<any>('/notifications')
+    api.get<any>('/notifications/')
       .then(res => {
         const data = res?.data ?? res;
         setNotifications(Array.isArray(data) ? data : []);

@@ -54,11 +54,11 @@ export default function AdminUserManagement() {
     try {
       setIsLoading(true);
       setError('');
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (roleFilter) params.append('role', roleFilter);
+      const queryParams: Record<string, string> = {};
+      if (search) queryParams.search = search;
+      if (roleFilter) queryParams.role = roleFilter;
       
-      const response = await api.get<any>(`/users?${params.toString()}`);
+      const response = await api.get<any>('/users/', { params: queryParams });
       const rawUsers = response?.data?.data || (Array.isArray(response?.data) ? response.data : []);
       const mappedUsers = Array.isArray(rawUsers) ? rawUsers.map((u: any) => ({
         id: u.id,
