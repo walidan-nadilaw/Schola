@@ -21,7 +21,7 @@ export default function AdminFAQManagement() {
   const fetchFaqs = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get<any>('/faqs');
+      const response = await api.get<any>('/faqs/');
       const rawFaqs = response?.data || (Array.isArray(response) ? response : []);
       setFaqs(Array.isArray(rawFaqs) ? rawFaqs : []);
     } catch (err) {

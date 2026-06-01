@@ -79,7 +79,7 @@ export const fetchVerifiers = async (search?: string): Promise<User[]> => {
   try {
     const params: Record<string, string | number> = { limit: 200 };
     if (search?.trim()) params.search = search.trim();
-    const res = await api.get<any>('/users', { params });
+    const res = await api.get<any>('/users/', { params });
     const resData = res.data?.data || res.data || res;
     const data = Array.isArray(resData) ? resData : [];
     return data

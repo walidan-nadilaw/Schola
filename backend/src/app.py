@@ -52,9 +52,13 @@ _allowed_origins = [
     for origin in (settings.FRONTEND_BASE_URL or "").split(",")
     if origin.strip()
 ]
+# If no origins are set, default to localhost to avoid using wildcard '*' with allow_credentials=True
+if not _allowed_origins:
+    _allowed_origins = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allowed_origins or ["*"],
+    allow_origins=_allowed_origins,
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],

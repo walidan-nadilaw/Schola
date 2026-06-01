@@ -212,7 +212,7 @@ export const mapBackendToSubmission = (s: any): Submission => {
 // Helper methods to access FastAPI backend
 export const fetchAllSubmissions = async (statusFilter?: string): Promise<Submission[]> => {
   try {
-    const res = await api.get<any>('/submissions', {
+    const res = await api.get<any>('/submissions/', {
       params: statusFilter ? { status_filter: statusFilter } : undefined
     });
     const list = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
@@ -235,7 +235,7 @@ export const fetchSubmissionById = async (id: string): Promise<Submission | null
 };
 
 export const createSubmission = async (templateId: string, formData: Record<string, any>): Promise<Submission> => {
-  const res = await api.post<any>('/submissions', {
+  const res = await api.post<any>('/submissions/', {
     template_id: templateId,
     form_data: formData
   });

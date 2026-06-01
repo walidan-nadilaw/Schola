@@ -12,9 +12,22 @@ export default function DynamicFormRenderer({ fields, formData, onChange }: Dyna
 
     switch (field.type) {
       case 'short_answer':
+      case 'text':
         return (
           <input
             type="text"
+            value={value}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            placeholder={field.placeholder}
+            required={field.required}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#007bff] focus:border-transparent"
+          />
+        );
+
+      case 'number':
+        return (
+          <input
+            type="number"
             value={value}
             onChange={(e) => onChange(field.id, e.target.value)}
             placeholder={field.placeholder}

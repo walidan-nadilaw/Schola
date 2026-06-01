@@ -37,8 +37,14 @@ class SubmissionRepository(ISubmissionRepository):
             row.attachments.append(AttachmentTable.from_domain(a))
         self.db.add(row)
         await self.db.commit()
-        await self.db.refresh(row, attribute_names=["verifiers", "attachments"])
-        return row.to_domain()
+        # Query again with all relationships eager-loaded to avoid lazy-loading MissingGreenlet errors
+        result = await self.db.execute(
+            self._query_with_relations().where(SubmissionTable.id == row.id)
+        )
+        refreshed = result.scalars().unique().first()
+        if refreshed is None:
+            return row.to_domain()
+        return refreshed.to_domain()
 
     async def update(self, entity: Submission) -> Submission:
         # Delete old verifiers and attachments, then re-insert
@@ -59,16 +65,28 @@ class SubmissionRepository(ISubmissionRepository):
             row.attachments.append(AttachmentTable.from_domain(a))
         merged = await self.db.merge(row)
         await self.db.commit()
-        await self.db.refresh(merged, attribute_names=["verifiers", "attachments"])
-        return merged.to_domain()
+        # Query again with all relationships eager-loaded to avoid lazy-loading MissingGreenlet errors
+        result = await self.db.execute(
+            self._query_with_relations().where(SubmissionTable.id == merged.id)
+        )
+        refreshed = result.scalars().unique().first()
+        if refreshed is None:
+            return merged.to_domain()
+        return refreshed.to_domain()
 
     async def saveAll(self, entities: Iterable[Submission]) -> Iterable[Submission]:
         rows = [SubmissionTable.from_domain(e) for e in entities]
         self.db.add_all(rows)
         await self.db.commit()
-        for row in rows:
-            await self.db.refresh(row, attribute_names=["verifiers", "attachments"])
-        return [row.to_domain() for row in rows]
+        # Query all again with all relationships eager-loaded to avoid lazy-loading MissingGreenlet errors
+        ids = [row.id for row in rows]
+        if not ids:
+            return []
+        result = await self.db.execute(
+            self._query_with_relations().where(SubmissionTable.id.in_(ids))
+        )
+        refreshed_rows = result.scalars().unique().all()
+        return [r.to_domain() for r in refreshed_rows]
 
     async def findById(self, id: str) -> Submission | None:
         result = await self.db.execute(
@@ -186,8 +204,16 @@ class SubmissionRepository(ISubmissionRepository):
         row = SubmissionVerifierTable.from_domain(verifier)
         merged = await self.db.merge(row)
         await self.db.commit()
-        await self.db.refresh(merged)
-        return merged.to_domain()
+        # Query again with nested verifier relationship eager-loaded to avoid lazy loading
+        result = await self.db.execute(
+            select(SubmissionVerifierTable)
+            .options(selectinload(SubmissionVerifierTable.verifier))
+            .where(SubmissionVerifierTable.id == merged.id)
+        )
+        refreshed = result.scalars().unique().first()
+        if refreshed is None:
+            return merged.to_domain()
+        return refreshed.to_domain()
 
     async def count_by_status(
         self,

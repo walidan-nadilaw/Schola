@@ -31,11 +31,11 @@ export default function LandingPage({
   const [faqs, setFaqs] = useState<{ id: string; question: string; answer: string }[]>([]);
 
   useEffect(() => {
-    api.get<any>('/templates')
+    api.get<any>('/templates/')
       .then((res) => setTemplates(res.data || []))
       .catch((err) => console.error("Gagal memuat template surat:", err));
 
-    api.get<any>('/faqs')
+    api.get<any>('/faqs/')
       .then((res) => setFaqs(res.data || []))
       .catch((err) => console.error("Gagal memuat FAQ:", err));
   }, []);

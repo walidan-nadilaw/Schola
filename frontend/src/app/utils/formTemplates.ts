@@ -10,7 +10,9 @@ export type FieldType =
   | 'dropdown'
   | 'date'
   | 'time'
-  | 'file_upload';
+  | 'file_upload'
+  | 'text'
+  | 'number';
 
 export interface FileUploadConfig {
   maxFiles?: number;
@@ -110,7 +112,7 @@ export class FormDraft {
 // Helper functions fetching from FastAPI backend
 export const fetchAllFormTemplates = async (): Promise<FormTemplate[]> => {
   try {
-    const res = await api.get<any>('/templates');
+    const res = await api.get<any>('/templates/');
     const list = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
     return list.map((t: any) => new FormTemplate({
       id: t.id,
