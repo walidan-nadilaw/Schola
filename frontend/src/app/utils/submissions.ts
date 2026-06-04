@@ -210,13 +210,10 @@ export const mapBackendToSubmission = (s: any): Submission => {
 };
 
 // Helper methods to access FastAPI backend
-export const fetchAllSubmissions = async (statusFilter?: string, mine?: boolean): Promise<Submission[]> => {
+export const fetchAllSubmissions = async (statusFilter?: string): Promise<Submission[]> => {
   try {
-    const params: Record<string, any> = {};
-    if (statusFilter) params.status = statusFilter;
-    if (mine === false) params.mine = false;
     const res = await api.get<any>('/submissions/', {
-      params: Object.keys(params).length > 0 ? params : undefined
+      params: statusFilter ? { status_filter: statusFilter } : undefined
     });
     const list = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
     return list.map(mapBackendToSubmission);
@@ -349,8 +346,8 @@ export const downloadSubmissionLetter = (submission: Submission): boolean => {
           <div style="margin-left:32px;margin-top:8px;margin-bottom:12px">
             <div><span class="label">Nama</span>: <strong>${esc(submission.submitterName)}</strong></div>
             <div><span class="label">NIM</span>: <strong>${esc(submission.submitterNim)}</strong></div>
-            <div><span class="label">Program Studi</span>: <strong>S1 Agronomi</strong></div>
-            <div><span class="label">Fakultas</span>: <strong>Fakultas Pertanian</strong></div>
+            <div><span class="label">Program Studi</span>: <strong>Ilmu Komputer</strong></div>
+            <div><span class="label">Fakultas</span>: <strong>Sekolah Sains Matematika dan Informatika</strong></div>
           </div>
           <p style="margin-bottom:12px">Adalah benar mahasiswa aktif pada Institut Pertanian Bogor semester ${esc(submission.formData['Semester'] || '-')} dan sedang menempuh pendidikan di program studi S1 Agronomi.</p>
           <p style="margin-bottom:12px">Surat keterangan ini dibuat untuk keperluan <strong>${esc(submission.formData['Keperluan'] || submission.keperluan)}</strong>.</p>
@@ -360,7 +357,6 @@ export const downloadSubmissionLetter = (submission: Submission): boolean => {
           <div style="text-align:center;font-size:13px;width:240px">
             <div style="margin-bottom:64px">
               <div>Bogor, ${esc(today)}</div>
-              <div style="font-weight:500">Dekan,</div>
             </div>
             ${signatureBlock}
           </div>
