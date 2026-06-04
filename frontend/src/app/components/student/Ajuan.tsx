@@ -353,10 +353,6 @@ export default function Ajuan({ preSelectedLetter, editingSubmissionId, onBackTo
         {/* Step 3: Select Verifiers */}
         {currentStep === 3 && currentTemplate && (
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <p className="font-bold text-[#007bff]">Jenis Surat: {selectedLetter}</p>
-            </div>
-
             <h2 className="text-2xl font-bold mb-4">Tentukan Verifikator</h2>
             <p className="text-gray-600 mb-6">Pilih user yang akan memverifikasi pengajuan surat Anda</p>
 

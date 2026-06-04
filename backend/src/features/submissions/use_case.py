@@ -2,12 +2,15 @@
 
 from datetime import datetime
 from typing import Any
+from urllib.parse import quote
 from uuid import UUID
 
 from src.api.exceptions import BadRequestException, NotFoundException
+from src.domain.entity.i_notification_repository import INotificationRepository
 from src.domain.entity.i_submission_repository import ISubmissionRepository
 from src.domain.entity.i_template_repository import IFormTemplateRepository
 from src.domain.entity.i_user_repository import IUserRepository
+from src.domain.entity.notification import Notification
 from src.domain.entity.submission import Submission, SubmissionStatus, SubmissionVerifier, VerifierRole
 from src.domain.entity.user import UserRole
 
@@ -92,10 +95,12 @@ class SubmitSubmissionUseCase:
         sub_repo: ISubmissionRepository,
         tpl_repo: IFormTemplateRepository,
         user_repo: IUserRepository,
+        notif_repo: INotificationRepository,
     ) -> None:
         self._sub_repo = sub_repo
         self._tpl_repo = tpl_repo
         self._user_repo = user_repo
+        self._notif_repo = notif_repo
 
     async def execute(
         self,
@@ -144,7 +149,26 @@ class SubmitSubmissionUseCase:
         sub.verifiers = verifiers
         sub.is_ordered_verification = is_ordered
         sub.submit()
-        return await self._sub_repo.update(sub)
+        saved = await self._sub_repo.update(sub)
+
+        # ── Notify verifiers ──
+        action_url = f"/submission/{quote(sub.id, safe='')}"
+        notif_kwargs = dict(
+            type="verification_required",
+            title="Ada Pengajuan Baru untuk Diverifikasi",
+            message=f"Pengajuan '{sub.letter_type}' menunggu verifikasi Anda.",
+            submission_id=sub.id,
+            action_url=action_url,
+        )
+        if is_ordered:
+            first_sv = next((v for v in verifiers if v.verifier_order == 1), None)
+            if first_sv:
+                await self._notif_repo.save(Notification.New(user_id=first_sv.verifier_id, **notif_kwargs))
+        else:
+            for sv in verifiers:
+                await self._notif_repo.save(Notification.New(user_id=sv.verifier_id, **notif_kwargs))
+
+        return saved
 
     @staticmethod
     def _validate_form_fields(

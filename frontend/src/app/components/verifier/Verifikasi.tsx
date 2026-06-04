@@ -181,6 +181,7 @@ export default function Verifikasi() {
                     <ArrowUpDown size={16} />
                   </button>
                 </th>
+                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Pengaju</th>
                 <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">
                   <button
                     onClick={() => handleSort('tanggalVerifikasi')}
@@ -205,7 +206,7 @@ export default function Verifikasi() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <svg className="animate-spin h-8 w-8 text-[#007bff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -229,13 +230,15 @@ export default function Verifikasi() {
 
                   {/* Submission Date Column */}
                   <td className="px-6 py-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {submission.getFormattedDate(submission.tanggalPengajuan)}
-                      </p>
-                      <p className="text-xs text-gray-500">oleh {submission.submitterName}</p>
-                      <p className="text-xs text-gray-500">{submission.submitterNim}</p>
-                    </div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {submission.getFormattedDate(submission.tanggalPengajuan)}
+                    </p>
+                  </td>
+
+                  {/* Pengaju Column */}
+                  <td className="px-6 py-4">
+                    <p className="text-sm font-medium text-gray-900">{submission.submitterName}</p>
+                    <p className="text-xs text-gray-500">{submission.submitterNim}</p>
                   </td>
 
                   {/* Verification Date Column */}
@@ -278,23 +281,35 @@ export default function Verifikasi() {
                         <Eye size={18} />
                       </button>
                       {submission.isPending() && (
-                        <button
-                          onClick={() => {
-                            handleViewDetail(submission);
-                            setTimeout(() => handleOpenVerificationForm('approve'), 300);
-                          }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
-                            submission.role === 'verifier'
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                          }`}
-                          title={submission.role === 'verifier' ? "Verifikasi pengajuan" : "Bubuhkan tanda tangan digital"}
-                        >
-                          {submission.role === 'verifier'
-                            ? <><CheckCircle size={14} /> Setujui</>
-                            : <><PenLine size={14} /> Tanda Tangani</>
-                          }
-                        </button>
+                        <>
+                          <button
+                            onClick={() => {
+                              handleViewDetail(submission);
+                              setTimeout(() => handleOpenVerificationForm('approve'), 300);
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
+                              submission.role === 'verifier'
+                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                            }`}
+                            title={submission.role === 'verifier' ? "Verifikasi pengajuan" : "Bubuhkan tanda tangan digital"}
+                          >
+                            {submission.role === 'verifier'
+                              ? <><CheckCircle size={14} /> Setujui</>
+                              : <><PenLine size={14} /> Tanda Tangani</>
+                            }
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleViewDetail(submission);
+                              setTimeout(() => handleOpenVerificationForm('reject'), 300);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium bg-red-600 hover:bg-red-700 text-white"
+                            title="Tolak pengajuan"
+                          >
+                            <XCircle size={14} /> Tolak
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>

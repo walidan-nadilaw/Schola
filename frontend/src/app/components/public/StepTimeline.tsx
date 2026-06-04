@@ -29,7 +29,7 @@ export default function StepTimeline({ currentStep, steps }: StepTimelineProps) 
                   {isCompleted ? <Check size={20} /> : stepNumber}
                 </div>
                 <p
-                  className={`mt-2 text-sm font-medium ${
+                  className={`mt-2 text-sm font-medium text-center w-20 ${
                     isCurrent ? 'text-[#007bff]' : isCompleted ? 'text-green-600' : 'text-gray-500'
                   }`}
                 >

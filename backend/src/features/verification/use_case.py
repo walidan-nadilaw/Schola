@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+from urllib.parse import quote
 
 from uuid import UUID
 
@@ -187,6 +188,7 @@ class VerifySubmissionUseCase:
             title="Pengajuan Surat Anda Ditolak",
             message=f"Pengajuan '{sub.letter_type}' Anda ditolak. Alasan: {reason}",
             submission_id=sub.id,
+            action_url=f"/submission/{quote(sub.id, safe='')}",
         ))
 
         return {"message": "Pengajuan surat berhasil ditolak.", "status": "rejected"}
@@ -229,6 +231,7 @@ class VerifySubmissionUseCase:
                 title="Pengajuan Surat Anda Disetujui",
                 message=f"Pengajuan '{sub.letter_type}' Anda telah disetujui dan surat resmi diterbitkan.",
                 submission_id=sub.id,
+                action_url=f"/submission/{quote(sub.id, safe='')}",
             ))
 
             return {
@@ -251,6 +254,7 @@ class VerifySubmissionUseCase:
                     title="Giliran Anda untuk Memverifikasi Pengajuan",
                     message=f"Verifikator sebelumnya telah menyetujui '{sub.letter_type}'. Silakan tinjau.",
                     submission_id=sub.id,
+                    action_url=f"/submission/{quote(sub.id, safe='')}",
                 ))
 
         return {

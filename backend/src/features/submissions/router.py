@@ -9,6 +9,7 @@ from src.api.deps.auth import get_current_user, require_role
 from src.api.http import HTTPDataResponse, HTTPErrorResponse
 from src.domain.entity.user import User, UserRole
 from src.infrastructure.db import get_async_db_session
+from src.infrastructure.repositories.notification_repository import NotificationRepository
 from src.infrastructure.repositories.submission_repository import SubmissionRepository
 from src.infrastructure.repositories.template_repository import FormTemplateRepository
 from src.infrastructure.repositories.user_repository import UserRepository
@@ -158,6 +159,7 @@ async def submit_submission(
         SubmissionRepository(db),
         FormTemplateRepository(db),
         UserRepository(db),
+        NotificationRepository(db),
     )
     s = await uc.execute(
         submission_id,
