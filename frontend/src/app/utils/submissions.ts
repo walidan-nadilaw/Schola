@@ -349,7 +349,7 @@ export const downloadSubmissionLetter = (submission: Submission): boolean => {
             <div><span class="label">Program Studi</span>: <strong>Ilmu Komputer</strong></div>
             <div><span class="label">Fakultas</span>: <strong>Sekolah Sains Matematika dan Informatika</strong></div>
           </div>
-          <p style="margin-bottom:12px">Adalah benar mahasiswa aktif pada Institut Pertanian Bogor semester ${esc(submission.formData['Semester'] || '-')} dan sedang menempuh pendidikan di program studi S1 Agronomi.</p>
+          <p style="margin-bottom:12px">Adalah benar mahasiswa aktif pada Institut Pertanian Bogor semester ${esc(submission.formData['Semester'] || '-')} dan sedang menempuh pendidikan di program studi Ilmu Komputer.</p>
           <p style="margin-bottom:12px">Surat keterangan ini dibuat untuk keperluan <strong>${esc(submission.formData['Keperluan'] || submission.keperluan)}</strong>.</p>
           <p>Demikian surat keterangan ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>
         </div>

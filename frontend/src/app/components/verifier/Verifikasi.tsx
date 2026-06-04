@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, Search, ArrowUpDown, FileText, Download, X, PenLine } from 'lucide-react';
-import { Submission, SubmissionStatus, mapBackendToSubmission, extractTitle } from '../../utils/submissions';
+import { Submission, SubmissionStatus, mapBackendToSubmission, extractTitle, downloadSubmissionLetter } from '../../utils/submissions';
 import { api, fileDownloadUrl } from '../../utils/api';
 import { toast } from 'sonner';
+import LetterPreview from '../shared/LetterPreview';
 
 type SortableColumn = 'judul' | 'tanggalSubmit' | 'tanggalVerifikasi' | 'keterangan';
 
@@ -18,6 +19,7 @@ export default function Verifikasi() {
   const [signerConfirmed, setSignerConfirmed] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showLetterPreview, setShowLetterPreview] = useState(false);
 
   const loadVerifications = async () => {
     setLoading(true);
@@ -370,15 +372,24 @@ export default function Verifikasi() {
                       {selectedSubmission.role === 'verifier' ? 'Verifikator' : 'Penandatangan'}
                     </span>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    selectedSubmission.isFullyApproved()
-                      ? 'bg-green-100 text-green-700'
-                      : selectedSubmission.status === SubmissionStatus.REJECTED
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {selectedSubmission.isFullyApproved() ? 'Terverifikasi' : selectedSubmission.status === SubmissionStatus.REJECTED ? 'Ditolak' : 'Menunggu Verifikasi'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowLetterPreview(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-50 text-[#007bff] border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <Eye size={16} />
+                      Preview Surat
+                    </button>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedSubmission.isFullyApproved()
+                        ? 'bg-green-100 text-green-700'
+                        : selectedSubmission.status === SubmissionStatus.REJECTED
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {selectedSubmission.isFullyApproved() ? 'Terverifikasi' : selectedSubmission.status === SubmissionStatus.REJECTED ? 'Ditolak' : 'Menunggu Verifikasi'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-6">
@@ -621,6 +632,47 @@ export default function Verifikasi() {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Modal Preview Surat */}
+      {showLetterPreview && selectedSubmission && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/60 z-[60]"
+            onClick={() => setShowLetterPreview(false)}
+          ></div>
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+                <h3 className="font-bold flex items-center gap-2">
+                  <FileText size={20} className="text-[#007bff]" />
+                  Preview Surat (A4)
+                </h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const opened = downloadSubmissionLetter(selectedSubmission);
+                      if (!opened) toast.error('Popup diblokir browser. Izinkan popup untuk mengunduh surat.');
+                    }}
+                    className="flex items-center gap-2 bg-[#007bff] text-white px-4 py-2 rounded-lg hover:bg-[#0056b3] transition-colors"
+                  >
+                    <Download size={18} />
+                    Download PDF
+                  </button>
+                  <button
+                    onClick={() => setShowLetterPreview(false)}
+                    className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
+                <LetterPreview submission={selectedSubmission} />
               </div>
             </div>
           </div>
