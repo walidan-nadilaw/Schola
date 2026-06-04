@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Download, User, Calendar, FileText, CheckCircle, Edit2, XCircle, Clock, Eye, X } from 'lucide-react';
-import { Submission, SubmissionStatus, fetchSubmissionById } from '../../utils/submissions';
+import { Submission, SubmissionStatus, fetchSubmissionById, downloadSubmissionLetter } from '../../utils/submissions';
 import { fileDownloadUrl } from '../../utils/api';
 
 interface SubmissionDetailProps {
@@ -58,106 +58,13 @@ export default function SubmissionDetail({ submissionId, onBack, onEdit }: Submi
   const totalVerifiers = submission.verifiers.length || 3;
   const approvedCount = submission.verifiers.filter(v => v.status === 'Disetujui').length;
 
-  // Build a self-contained A4 letter and open the browser print dialog
-  // (user picks "Save as PDF"). Inline CSS so it renders without Tailwind.
+  // Build the A4 letter and open the browser print dialog (user picks "Save as PDF").
+  // Shared with the Riwayat Pengajuan download button so output is identical.
   const handleDownloadSurat = () => {
-    const esc = (s: string) =>
-      String(s ?? '').replace(/[&<>"']/g, (c) =>
-        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string)
-      );
-    const approved = submission.isFullyApproved();
-    const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-
-    const signatureBlock = approved
-      ? `<div style="margin-bottom:8px"><div style="font-size:11px;color:#16a34a;font-style:italic;margin-bottom:4px">Ditandatangani secara digital</div>
-           <div style="border:2px solid #22c55e;border-radius:6px;padding:8px;background:#f0fdf4">
-             <div style="font-weight:bold">Prof. Budi Wijaya</div><div style="font-size:11px">NIP. 196512151990031002</div></div></div>`
-      : `<div style="margin-bottom:8px"><div style="font-size:11px;color:#9ca3af;font-style:italic;margin-bottom:4px">Menunggu tanda tangan</div>
-           <div style="border:2px dashed #d1d5db;border-radius:6px;padding:8px"><div style="font-weight:bold;color:#9ca3af">Belum Ditandatangani</div></div></div>`;
-
-    const verifHistory = approved
-      ? `<div style="margin-top:32px;padding-top:16px;border-top:1px solid #d1d5db;font-size:11px;color:#4b5563">
-           <div style="font-weight:bold;margin-bottom:8px">Riwayat Verifikasi:</div>
-           ${submission.verifiers
-             .map((v) => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>✓ ${esc(v.name)} (${esc(v.role)})</span><span style="color:#6b7280">${esc(v.date)}</span></div>`)
-             .join('')}
-         </div>`
-      : '';
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(submission.jenisSurat)} - ${esc(submission.id)}</title>
-      <style>
-        @page { size: A4; margin: 0; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Times New Roman', serif; color: #111; background: #e5e7eb; }
-        .toolbar { display: flex; align-items: center; gap: 12px; padding: 12px 24px;
-                   background: #1f2937; position: sticky; top: 0; z-index: 10; }
-        .toolbar button { background: #2563eb; color: #fff; border: none; padding: 8px 20px;
-                          border-radius: 6px; font-size: 14px; cursor: pointer; font-family: sans-serif; }
-        .toolbar button:hover { background: #1d4ed8; }
-        .toolbar span { color: #d1d5db; font-size: 13px; font-family: sans-serif; }
-        .page { width: 210mm; min-height: 297mm; margin: 24px auto; background: #fff;
-                padding: 20mm; box-shadow: 0 4px 24px rgba(0,0,0,0.2); }
-        .label { display: inline-block; width: 130px; }
-        @media print {
-          @page { size: A4; margin: 20mm; }
-          body { background: #fff; }
-          .toolbar { display: none; }
-          .page { width: auto; margin: 0; padding: 0; box-shadow: none; min-height: auto; }
-        }
-      </style></head>
-      <body>
-        <div class="toolbar">
-          <button onclick="window.print()">⬇ Simpan sebagai PDF</button>
-          <span>Pilih tujuan "Save as PDF" di dialog cetak</span>
-        </div>
-        <div class="page">
-          <div style="text-align:center;margin-bottom:24px">
-            <div style="font-weight:bold;font-size:18px;margin-bottom:4px">INSTITUT PERTANIAN BOGOR</div>
-            <div style="font-size:13px">Jl. Raya Dramaga, Kampus IPB Dramaga, Bogor 16680</div>
-            <div style="font-size:13px">Telp: (0251) 8622642 | Email: rektorat@ipb.ac.id</div>
-            <div style="border-top:2px solid #000;margin-top:8px"></div>
-          </div>
-          <div style="margin-bottom:24px;font-size:13px">
-            <div>Nomor: ${esc(submission.id)}/IPB/2026</div>
-            <div>Tanggal: ${esc(submission.getFormattedDate(submission.tanggalPengajuan))}</div>
-          </div>
-          <div style="text-align:center;font-weight:bold;font-size:18px;margin-bottom:24px;text-decoration:underline">${esc(submission.jenisSurat.toUpperCase())}</div>
-          <div style="font-size:13px;line-height:1.7">
-            <p style="margin-bottom:12px">Yang bertanda tangan di bawah ini, Dekan Fakultas Pertanian Institut Pertanian Bogor, menerangkan bahwa:</p>
-            <div style="margin-left:32px;margin-top:8px;margin-bottom:12px">
-              <div><span class="label">Nama</span>: <strong>${esc(submission.submitterName)}</strong></div>
-              <div><span class="label">NIM</span>: <strong>${esc(submission.submitterNim)}</strong></div>
-              <div><span class="label">Program Studi</span>: <strong>S1 Agronomi</strong></div>
-              <div><span class="label">Fakultas</span>: <strong>Fakultas Pertanian</strong></div>
-            </div>
-            <p style="margin-bottom:12px">Adalah benar mahasiswa aktif pada Institut Pertanian Bogor semester ${esc(submission.formData['Semester'] || '-')} dan sedang menempuh pendidikan di program studi S1 Agronomi.</p>
-            <p style="margin-bottom:12px">Surat keterangan ini dibuat untuk keperluan <strong>${esc(submission.formData['Keperluan'] || submission.keperluan)}</strong>.</p>
-            <p>Demikian surat keterangan ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>
-          </div>
-          <div style="margin-top:48px;display:flex;justify-content:flex-end">
-            <div style="text-align:center;font-size:13px;width:240px">
-              <div style="margin-bottom:64px">
-                <div>Bogor, ${esc(today)}</div>
-                <div style="font-weight:500">Dekan,</div>
-              </div>
-              ${signatureBlock}
-            </div>
-          </div>
-          ${verifHistory}
-        </div>
-      </body></html>`;
-
-    const win = window.open('', '_blank');
-    if (!win) {
+    const opened = downloadSubmissionLetter(submission);
+    if (!opened) {
       toast.error('Popup diblokir browser. Izinkan popup untuk mengunduh surat.');
-      return;
     }
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    // Give the new document a tick to lay out before printing.
-    setTimeout(() => win.print(), 300);
   };
 
   return (

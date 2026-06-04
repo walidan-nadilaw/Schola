@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Search, Download, Eye, Edit, FileText, ChevronLeft, ChevronRight, ArrowUpDown, Trash2 } from 'lucide-react';
-import { Submission, SubmissionStatus, fetchAllSubmissions, deleteSubmissionDraft } from '../../utils/submissions';
+import { Submission, SubmissionStatus, fetchAllSubmissions, deleteSubmissionDraft, downloadSubmissionLetter } from '../../utils/submissions';
 
 interface DiajukanProps {
   onNewSubmission?: () => void;
@@ -36,11 +36,10 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
     loadSubmissions();
   }, []);
 
-  const handleDownload = (submission: Submission, verified: boolean) => {
-    if (verified) {
-      toast.info(`Fitur unduh surat terverifikasi belum tersedia (ID: ${submission.id})`);
-    } else {
-      toast.info(`Fitur unduh surat belum tersedia (ID: ${submission.id})`);
+  const handleDownload = (submission: Submission) => {
+    const opened = downloadSubmissionLetter(submission);
+    if (!opened) {
+      toast.error('Popup diblokir browser. Izinkan popup untuk mengunduh surat.');
     }
   };
 
@@ -241,13 +240,9 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
 
                   {/* Tanggal Pengajuan Column */}
                   <td className="px-6 py-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {submission.getFormattedDate(submission.tanggalPengajuan)}
-                      </p>
-                      <p className="text-xs text-gray-500">oleh {submission.submitterName}</p>
-                      <p className="text-xs text-gray-500">{submission.submitterNim}</p>
-                    </div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {submission.getFormattedDate(submission.tanggalPengajuan)}
+                    </p>
                   </td>
 
                   {/* Tanggal Verifikasi Column */}
@@ -353,7 +348,7 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
 
                       {submission.isFullyApproved() ? (
                         <button
-                          onClick={() => handleDownload(submission, true)}
+                          onClick={() => handleDownload(submission)}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Download Surat Terverifikasi"
                         >
@@ -362,7 +357,7 @@ export default function Diajukan({ onNewSubmission, onViewDetail, onEdit }: Diaj
                       ) : (
                         !submission.isDraft() && (
                           <button
-                            onClick={() => handleDownload(submission, false)}
+                            onClick={() => handleDownload(submission)}
                             className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                             title="Download Surat (Belum Terverifikasi)"
                           >

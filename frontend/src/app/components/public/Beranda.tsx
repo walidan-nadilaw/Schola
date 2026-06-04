@@ -38,7 +38,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
           fetchAllSubmissions(),
           fetchAllFormTemplates(),
           !isMahasiswa ? api.get<any>('/dashboard/stats').catch(() => null) : Promise.resolve(null),
-          !isMahasiswa ? api.get<any>('/verifications/').catch(() => null) : Promise.resolve(null),
+          api.get<any>('/verifications/').catch(() => null),
           !isMahasiswa ? api.get<any>('/faqs/').catch(() => null) : Promise.resolve(null),
         ]);
         setSubmissions(subList || []);
@@ -288,7 +288,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
 
       <div className="grid grid-cols-2 gap-6">
         {/* Pending Verification Preview */}
-        {userRole !== 'mahasiswa' && (
+        {(
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
               <div>
@@ -348,7 +348,7 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
         )}
 
         {/* Recent Submissions Preview */}
-        <div className={`bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden ${userRole === 'mahasiswa' ? 'col-span-2' : ''}`}>
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-lg">Riwayat Pengajuan Terbaru</h2>

@@ -16,7 +16,7 @@ export default function AdminSubmissions({ onViewDetail }: AdminSubmissionsProps
   const loadSubmissions = async () => {
     setLoading(true);
     try {
-      const list = await fetchAllSubmissions();
+      const list = await fetchAllSubmissions(undefined, false);
       setSubmissions(list);
     } catch (e) {
       console.error('Gagal mengambil data pengajuan:', e);
@@ -55,7 +55,7 @@ export default function AdminSubmissions({ onViewDetail }: AdminSubmissionsProps
     <div className="p-8 font-['Plus_Jakarta_Sans',sans-serif]">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Manajemen Pengajuan (Admin POV)</h1>
+          <h1 className="text-3xl font-bold mb-2">Manajemen Pengajuan</h1>
           <p className="text-gray-600">Audit, manipulasi, dan lakukan moderasi terhadap seluruh pengajuan surat mahasiswa di IPB</p>
         </div>
       </div>

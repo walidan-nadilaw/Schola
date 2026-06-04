@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, X, ChevronUp, ChevronDown, User as UserIcon } from 'lucide-react';
+import { Search, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { fetchVerifiers, SelectedVerifier, User } from '../../utils/users';
 import { toast } from 'sonner';
 
@@ -135,9 +135,9 @@ export default function VerifierSelection({
   return (
     <div className="space-y-6">
       {/* Verification Type Toggle */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div>
         <label className="block font-medium mb-3">Tipe Verifikasi</label>
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
@@ -309,13 +309,6 @@ export default function VerifierSelection({
         </div>
       )}
 
-      {selectedVerifiers.length === 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-          <UserIcon className="mx-auto mb-2 text-yellow-600" size={32} />
-          <p className="text-yellow-700 font-medium">Belum ada verifikator dipilih</p>
-          <p className="text-sm text-yellow-600 mt-1">Cari dan pilih minimal 1 verifikator</p>
-        </div>
-      )}
     </div>
   );
 }
