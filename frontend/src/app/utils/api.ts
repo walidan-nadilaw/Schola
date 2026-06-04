@@ -14,6 +14,14 @@ if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
 
 export const TOKEN_KEY = import.meta.env.VITE_TOKEN_KEY ?? 'schola_token';
 
+/**
+ * Build a URL to open/download a stored attachment.
+ * Reuses BASE_URL (already upgraded to https when served over https), so storage
+ * keys are routed through the backend download endpoint. Absolute URLs pass through.
+ */
+export const fileDownloadUrl = (path: string): string =>
+  path.startsWith('http') ? path : `${BASE_URL}/files/download/${encodeURI(path)}`;
+
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }

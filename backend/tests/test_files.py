@@ -33,9 +33,11 @@ async def test_upload_requires_auth(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_download_requires_auth(client: AsyncClient):
+async def test_download_is_open(client: AsyncClient):
+    # Download is intentionally open (no auth) for the demo build; the route is
+    # reachable without a token, so a missing file returns 404 rather than 401/403.
     resp = await client.get("/files/download/somefile.pdf")
-    assert resp.status_code in (401, 403)
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio

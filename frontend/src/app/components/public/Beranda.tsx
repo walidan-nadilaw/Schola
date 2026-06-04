@@ -277,14 +277,6 @@ export default function Beranda({ onSectionChange, onViewSubmissionDetail, userR
           <p className="text-sm opacity-90 mt-1">Buat pengajuan surat akademik</p>
         </button>
         <button
-          onClick={() => onSectionChange?.('diajukan')}
-          className="bg-white text-gray-700 p-6 rounded-lg border-2 border-gray-200 hover:border-[#007bff] transition-colors text-left shadow-sm"
-        >
-          <Clock className="mb-3" size={32} />
-          <p className="font-bold text-lg">Riwayat Pengajuan</p>
-          <p className="text-sm text-gray-600 mt-1">Lihat status pengajuan surat</p>
-        </button>
-        <button
           onClick={() => onSectionChange?.('chatbot')}
           className="bg-white text-gray-700 p-6 rounded-lg border-2 border-gray-200 hover:border-[#007bff] transition-colors text-left shadow-sm"
         >

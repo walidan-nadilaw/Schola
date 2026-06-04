@@ -136,6 +136,23 @@ class R2StorageService(IStorageService):
             content_type=content_type,
         )
 
+    async def download(self, file_path: str) -> bytes:
+        path = f"/{self._bucket}/{quote(file_path, safe='/')}"
+        payload_hash = hashlib.sha256(b"").hexdigest()
+
+        headers = {
+            "host": f"{self._account_id}.r2.cloudflarestorage.com",
+        }
+        headers = self._sign_request("GET", path, headers, payload_hash)
+
+        client = self._get_client()
+        resp = await client.get(
+            f"{self._endpoint}{path}",
+            headers=headers,
+        )
+        resp.raise_for_status()
+        return resp.content
+
     async def delete(self, file_path: str) -> None:
         path = f"/{self._bucket}/{quote(file_path, safe='/')}"
         payload_hash = hashlib.sha256(b"").hexdigest()

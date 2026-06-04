@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, Search, ArrowUpDown, FileText, Download, X, PenLine } from 'lucide-react';
 import { Submission, SubmissionStatus, mapBackendToSubmission, extractTitle } from '../../utils/submissions';
-import { api } from '../../utils/api';
+import { api, fileDownloadUrl } from '../../utils/api';
 import { toast } from 'sonner';
 
 type SortableColumn = 'judul' | 'tanggalSubmit' | 'tanggalVerifikasi' | 'keterangan';
@@ -415,8 +415,7 @@ export default function Verifikasi() {
                                     onClick={() => {
                                       const filePath = file.path || file.file_path;
                                       if (filePath) {
-                                        const url = filePath.startsWith('http') ? filePath : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${filePath}`;
-                                        window.open(url, '_blank');
+                                        window.open(fileDownloadUrl(filePath), '_blank');
                                       }
                                     }}
                                     className="flex items-center gap-1.5 text-[#007bff] hover:underline text-xs font-semibold"
@@ -489,8 +488,7 @@ export default function Verifikasi() {
                             <button
                               onClick={() => {
                                 if (file.path) {
-                                  const url = file.path.startsWith('http') ? file.path : `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${file.path}`;
-                                  window.open(url, '_blank');
+                                  window.open(fileDownloadUrl(file.path), '_blank');
                                 } else {
                                   toast.info(`Dokumen belum tersedia: ${file.name}`);
                                 }

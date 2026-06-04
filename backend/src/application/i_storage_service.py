@@ -28,6 +28,10 @@ class IStorageService(ABC):
         """Upload a file and return its stored metadata."""
 
     @abstractmethod
+    async def download(self, file_path: str) -> bytes:
+        """Fetch a stored file's raw bytes by its stored path."""
+
+    @abstractmethod
     async def delete(self, file_path: str) -> None:
         """Delete a file by its stored path."""
 

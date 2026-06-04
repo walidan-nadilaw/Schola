@@ -66,6 +66,11 @@ class FakeStorageService(IStorageService):
         self._store[key] = file_data
         return StoredFile(file_path=key, file_url=f"/fake/{key}", file_size=len(file_data), content_type=content_type)
 
+    async def download(self, file_path: str) -> bytes:
+        if file_path not in self._store:
+            raise FileNotFoundError(file_path)
+        return self._store[file_path]
+
     async def delete(self, file_path: str) -> None:
         self._store.pop(file_path, None)
 

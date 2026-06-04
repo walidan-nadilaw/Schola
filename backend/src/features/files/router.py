@@ -1,10 +1,8 @@
 """FastAPI router for the Files feature."""
 
-import os as _os
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps.auth import get_current_user
@@ -15,7 +13,6 @@ from src.domain.entity.user import User
 from src.infrastructure.db import get_async_db_session
 from src.infrastructure.repositories.attachment_repository import AttachmentRepository
 from src.infrastructure.repositories.submission_repository import SubmissionRepository
-from src.infrastructure.services.local_storage_service import UPLOAD_DIR
 
 from .schemas import UploadFileResponse
 from .use_case import DeleteFileUseCase, DownloadFileUseCase, UploadFileUseCase
@@ -72,30 +69,23 @@ async def upload_file(
 )
 async def download_file(
     filename: str,
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db_session),
     storage: IStorageService = Depends(get_storage_service),
 ):
-    """Download a file with authorization check. Redirects to the storage URL."""
+    """Stream a stored file's bytes. Auth is intentionally open for the demo build."""
     uc = DownloadFileUseCase(
         attachment_repo=AttachmentRepository(db),
         submission_repo=SubmissionRepository(db),
         storage=storage,
     )
-    file_info = await uc.execute(filename, current_user)
+    file_info = await uc.execute(filename)
 
-    if storage.is_local:
-        # Stream local file directly
-        local_path = _os.path.join(UPLOAD_DIR, file_info.file_path)
-        return FileResponse(
-            path=local_path,
-            media_type=file_info.file_type,
-            filename=file_info.file_name,
-        )
-
-    # Remote storage (R2) — redirect to public URL
-    url = await storage.get_url(file_info.file_path)
-    return RedirectResponse(url=url)
+    data = await storage.download(file_info.file_path)
+    return Response(
+        content=data,
+        media_type=file_info.file_type,
+        headers={"Content-Disposition": f'inline; filename="{file_info.file_name}"'},
+    )
 
 
 @router.delete(

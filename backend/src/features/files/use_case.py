@@ -112,14 +112,15 @@ class DownloadFileUseCase:
         self._storage = storage
 
     async def execute(
-        self, file_path: str, current_user: User
+        self, file_path: str, current_user: User | None = None
     ) -> FileInfoResponse:
         att = await self._attachment_repo.find_by_file_path(file_path)
         if att is None:
             raise NotFoundException("Berkas tidak ditemukan")
 
         # ── Authorization ──
-        if not await self._is_authorized(att, current_user):
+        # Skipped when no user is supplied (open download for the demo build).
+        if current_user is not None and not await self._is_authorized(att, current_user):
             raise AuthorizationException(
                 "Anda tidak memiliki hak akses untuk berkas ini"
             )

@@ -44,6 +44,13 @@ class LocalStorageService(IStorageService):
             content_type=content_type,
         )
 
+    async def download(self, file_path: str) -> bytes:
+        target = os.path.join(UPLOAD_DIR, file_path)
+        if not os.path.exists(target):
+            raise FileNotFoundError(file_path)
+        with open(target, "rb") as f:
+            return f.read()
+
     async def delete(self, file_path: str) -> None:
         target = os.path.join(UPLOAD_DIR, file_path)
         if os.path.exists(target):

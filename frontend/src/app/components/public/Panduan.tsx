@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, FileText, Clock, CheckCircle, Download, ChevronDown, HelpCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, ChevronDown, HelpCircle } from 'lucide-react';
 import imgBgPageTitleScaled1 from "../../../imports/LandingPage/891b7e209714ed31573053818da4963bc230914c.png";
 import { mockGuides } from '../../utils/guides';
 import { api } from '../../utils/api';
@@ -175,20 +175,6 @@ export default function Panduan({ onAjukan }: PanduanProps) {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Download Guide */}
-        <div className="mb-12 bg-gradient-to-r from-[#007bff] to-[#0056b3] rounded-lg p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold mb-2">Panduan Lengkap (PDF)</h3>
-              <p className="opacity-90">Download panduan lengkap penggunaan sistem Schola</p>
-            </div>
-            <button className="bg-white text-[#007bff] px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-gray-100 transition-colors">
-              <Download size={20} />
-              Download PDF
-            </button>
-          </div>
         </div>
 
         {/* FAQ Section */}
